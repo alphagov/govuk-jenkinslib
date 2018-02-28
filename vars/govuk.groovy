@@ -977,4 +977,12 @@ def getFullCommitHash() {
   ).trim()
 }
 
+/*
+* This is a method to test that the external library loading
+* works as expect
+*/
+def pipelineTest() {
+  sh("echo 'If you see this I am working as expected'")
+}
+
 return this;
