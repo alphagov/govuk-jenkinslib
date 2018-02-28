@@ -2,7 +2,16 @@
 
 A library for setting up CI environments in GOV.UK.
 
-The library will need to be loaded into a Jenkins instance before being able to use it.
+The library will need to be loaded into a Jenkins instance before being able to use it. This
+will depend on Jenkins [being configured to load it](https://jenkins.io/doc/book/pipeline/shared-libraries/#global-shared-libraries).
+
+To load the library, use the `library` function:
+
+`library("govuk")`
+
+To specify a different branch for testing:
+
+`library("govuk@my-new-branch")`
 
 ## Setting up CI on GOV.UK
 
@@ -11,8 +20,9 @@ For most Ruby projects, the following `Jenkinsfile` is sufficient:
 ```groovy
 #!/usr/bin/env groovy
 
+library("govuk")
+
 node {
-  def govuk = load '/var/lib/jenkins/groovy_scripts/govuk_jenkinslib.groovy'
   govuk.buildProject()
 }
 ```
@@ -31,8 +41,9 @@ disable linting:
 ```groovy
 #!/usr/bin/env groovy
 
+library("govuk")
+
 node {
-  def govuk = load '/var/lib/jenkins/groovy_scripts/govuk_jenkinslib.groovy'
   govuk.buildProject(sassLint: false)
 }
 ```
@@ -43,9 +54,9 @@ you can do this by specifying the `overrideTestTask` option:
 ```groovy
 #!/usr/bin/env groovy
 
-node {
-  def govuk = load '/var/lib/jenkins/groovy_scripts/govuk_jenkinslib.groovy'
+library("govuk")
 
+node {
   govuk.buildProject(overrideTestTask: {
     stage("Run custom tests") {
       govuk.runRakeTask("super-special-tests")
