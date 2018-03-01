@@ -73,7 +73,7 @@ def buildProject(Map options = [:]) {
     }
 
     if (params.IS_SCHEMA_TEST) {
-      setBuildStatus(jobName, params.SCHEMA_COMMIT, "Downstream ${jobName} job is building on Jenkins", 'PENDING')
+      setBuildStatus(jobName, params.SCHEMA_COMMIT, "Downstream ${jobName} job is building on Jenkins", 'PENDING', 'govuk-content-schemas')
     }
 
     stage("Checkout") {
@@ -129,7 +129,7 @@ def buildProject(Map options = [:]) {
       }
     }
     if (params.IS_SCHEMA_TEST) {
-      setBuildStatus(jobName, params.SCHEMA_COMMIT, "Downstream ${jobName} job succeeded on Jenkins", 'SUCCESS')
+      setBuildStatus(jobName, params.SCHEMA_COMMIT, "Downstream ${jobName} job succeeded on Jenkins", 'SUCCESS', 'govuk-content-schemas')
     }
 
   } catch (e) {
@@ -139,7 +139,7 @@ def buildProject(Map options = [:]) {
           recipients: 'govuk-ci-notifications@digital.cabinet-office.gov.uk',
           sendToIndividuals: true])
     if (params.IS_SCHEMA_TEST) {
-      setBuildStatus(jobName, params.SCHEMA_COMMIT, "Downstream ${jobName} job failed on Jenkins", 'FAILED')
+      setBuildStatus(jobName, params.SCHEMA_COMMIT, "Downstream ${jobName} job failed on Jenkins", 'FAILED', 'govuk-content-schemas')
     }
     throw e
   }
@@ -865,12 +865,13 @@ def uploadArtefactToS3(artefact_path, s3_path){
  * @param commit SHA of the triggering commit on govuk-content-schemas
  * @param message The message to report
  * @param state The build state: one of PENDING, SUCCESS, FAILED
+ * @param repoName The alphagov repository
  */
-def setBuildStatus(jobName, commit, message, state) {
+def setBuildStatus(jobName, commit, message, state, repoName) {
   step([
       $class: "GitHubCommitStatusSetter",
       commitShaSource: [$class: "ManuallyEnteredShaSource", sha: commit],
-      reposSource: [$class: "ManuallyEnteredRepositorySource", url: "https://github.com/alphagov/govuk-content-schemas"],
+      reposSource: [$class: "ManuallyEnteredRepositorySource", url: "https://github.com/alphagov/${repoName}"],
       contextSource: [$class: "ManuallyEnteredCommitContextSource", context: "continuous-integration/jenkins/${jobName}"],
       errorHandlers: [[$class: "ChangingBuildStatusErrorHandler", result: "UNSTABLE"]],
       statusResultSource: [ $class: "ConditionalStatusResultSource", results: [[$class: "AnyBuildResult", message: message, state: state]] ]
