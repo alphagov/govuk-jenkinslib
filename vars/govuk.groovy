@@ -926,12 +926,19 @@ def shellcheck(setFiles = [], setExcludes = []) {
     excludes = "! -path " + setExcludes.join(" ! -path ")
   }
 
+  // For information on the codes, look in
+  // https://github.com/koalaman/shellcheck/wiki
+  ignoreCodes = [
+    "SC2086", // Produces lots of warnings throughout code but rarely causes issues
+    "SC1117", // This is a syntax preference which should not affect scripts
+  ]
+
   // By default check anything with .sh extension through the entire repository
   if (setFiles.empty) {
-    sh("find . -type f ${excludes} -name '*.sh' | xargs shellcheck")
+    sh("find . -type f ${excludes} -name '*.sh' | xargs shellcheck -e ${ignoreCodes.join(",")}")
   } else {
   // Otherwise check each specified file or pattern
-    sh("shellcheck ${setFiles.join(" ")}")
+    sh("shellcheck -e ${ignoreCodes.join(",")} ${setFiles.join(" ")}")
   }
 
 }
