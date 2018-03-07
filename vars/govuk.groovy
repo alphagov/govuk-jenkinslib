@@ -906,6 +906,43 @@ def getFullCommitHash() {
   ).trim()
 }
 
+/**
+ * Run Shellcheck.
+ * By default, run shellcheck against all files with the .sh extension. Optionally
+ * specify all files to check or add exclusions to the default. These cannot be used
+ * together; however, setFiles *can* use patterns if you have an idea on where
+ * your shell scripts are.
+ */
+def shellcheck(setFiles = [], setExcludes = []) {
+  if (setFiles && setExcludes) {
+    error("Specifying files cannot be used together with setting excludes")
+  }
+
+  if (setExcludes.empty) {
+    // Empty string to pass to the find command
+    excludes = ""
+  } else {
+    // Exclude the paths specified
+    excludes = "! -path " + setExcludes.join(" ! -path ")
+  }
+
+  // For information on the codes, look in
+  // https://github.com/koalaman/shellcheck/wiki
+  ignoreCodes = [
+    "SC2086", // Produces lots of warnings throughout code but rarely causes issues
+    "SC1117", // This is a syntax preference which should not affect scripts
+  ]
+
+  // By default check anything with .sh extension through the entire repository
+  if (setFiles.empty) {
+    sh("find . -type f ${excludes} -name '*.sh' | xargs shellcheck -e ${ignoreCodes.join(",")}")
+  } else {
+  // Otherwise check each specified file or pattern
+    sh("shellcheck -e ${ignoreCodes.join(",")} ${setFiles.join(" ")}")
+  }
+
+}
+
 /*
 * This is a method to test that the external library loading
 * works as expect
