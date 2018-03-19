@@ -153,7 +153,9 @@ def nonDockerBuildTasks(options, jobName, repoName) {
   }
 
   stage("Security analysis") {
-    runBrakemanSecurityScanner(repoName)
+    if (options.brakeman) {
+      runBrakemanSecurityScanner(repoName)
+    }
   }
 
   if (hasLint()) {
