@@ -73,7 +73,7 @@ def buildProject(Map options = [:]) {
     }
 
     if (params.IS_SCHEMA_TEST) {
-      setBuildStatus(jobName, params.SCHEMA_COMMIT, "Downstream ${jobName} job is building on Jenkins", 'PENDING')
+      setBuildStatus(jobName, params.SCHEMA_COMMIT, "Downstream ${jobName} job is building on Jenkins", 'PENDING', 'govuk-content-schemas')
     }
 
     stage("Checkout") {
@@ -129,7 +129,7 @@ def buildProject(Map options = [:]) {
       }
     }
     if (params.IS_SCHEMA_TEST) {
-      setBuildStatus(jobName, params.SCHEMA_COMMIT, "Downstream ${jobName} job succeeded on Jenkins", 'SUCCESS')
+      setBuildStatus(jobName, params.SCHEMA_COMMIT, "Downstream ${jobName} job succeeded on Jenkins", 'SUCCESS', 'govuk-content-schemas')
     }
 
   } catch (e) {
@@ -139,7 +139,7 @@ def buildProject(Map options = [:]) {
           recipients: 'govuk-ci-notifications@digital.cabinet-office.gov.uk',
           sendToIndividuals: true])
     if (params.IS_SCHEMA_TEST) {
-      setBuildStatus(jobName, params.SCHEMA_COMMIT, "Downstream ${jobName} job failed on Jenkins", 'FAILED')
+      setBuildStatus(jobName, params.SCHEMA_COMMIT, "Downstream ${jobName} job failed on Jenkins", 'FAILED', 'govuk-content-schemas')
     }
     throw e
   }
@@ -150,6 +150,12 @@ def nonDockerBuildTasks(options, jobName, repoName) {
 
   stage("bundle install") {
     isGem() ? bundleGem() : bundleApp()
+  }
+
+  stage("Security analysis") {
+    if (options.brakeman) {
+      runBrakemanSecurityScanner(repoName)
+    }
   }
 
   if (hasLint()) {
@@ -242,6 +248,35 @@ def dockerBuildTasks(options, jobName) {
         pushDockerImageToGCR(jobName, env.BRANCH_NAME)
       }
     }
+  }
+}
+
+/**
+ * Run the brakeman security scanner against the current project
+ *
+ * @param repoName Name of the alphagov repository
+ */
+def runBrakemanSecurityScanner(repoName) {
+  // Install the brakeman gem and parse the output to retrieve the version we
+  // just installed. We'll use that version to run the brakeman binary. We need
+  // to do this because we can't just `gem install` the gem on Jenkins and want
+  // to prevent having to add the gem to every Gemfile.
+  def gemVersion = sh(
+    script: "gem install --no-document -q --install-dir ${JENKINS_HOME}/manually-installed-gems brakeman | grep 'Successfully installed brakeman'",
+    returnStdout: true
+  ).replaceAll("Successfully installed ", "").trim()
+
+  // Run brakeman's executable. If it finds security alerts it will return with
+  // an exited code other than 0.
+  def brakemanExitCode = sh(
+    script: "${JENKINS_HOME}/manually-installed-gems/gems/${gemVersion}/bin/brakeman .",
+    returnStatus: true
+  )
+
+  if (brakemanExitCode == 0) {
+    setBuildStatus("security", getFullCommitHash(), "No security issues found", "SUCCESS", repoName)
+  } else {
+    setBuildStatus("security", getFullCommitHash(), "Brakeman found security issues", "FAILURE", repoName)
   }
 }
 
@@ -865,12 +900,13 @@ def uploadArtefactToS3(artefact_path, s3_path){
  * @param commit SHA of the triggering commit on govuk-content-schemas
  * @param message The message to report
  * @param state The build state: one of PENDING, SUCCESS, FAILED
+ * @param repoName The alphagov repository
  */
-def setBuildStatus(jobName, commit, message, state) {
+def setBuildStatus(jobName, commit, message, state, repoName) {
   step([
       $class: "GitHubCommitStatusSetter",
       commitShaSource: [$class: "ManuallyEnteredShaSource", sha: commit],
-      reposSource: [$class: "ManuallyEnteredRepositorySource", url: "https://github.com/alphagov/govuk-content-schemas"],
+      reposSource: [$class: "ManuallyEnteredRepositorySource", url: "https://github.com/alphagov/${repoName}"],
       contextSource: [$class: "ManuallyEnteredCommitContextSource", context: "continuous-integration/jenkins/${jobName}"],
       errorHandlers: [[$class: "ChangingBuildStatusErrorHandler", result: "UNSTABLE"]],
       statusResultSource: [ $class: "ConditionalStatusResultSource", results: [[$class: "AnyBuildResult", message: message, state: state]] ]
