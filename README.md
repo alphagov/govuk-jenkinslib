@@ -68,6 +68,7 @@ node {
 Parameter | Description | Default
 --- | --- | ---
 sassLint | Whether or not to run the SASS linter | `true`
+rubyLintDiff | Whether or not to pass the `--diff` option to `govuk-lint-ruby` | `true`
 extraRubyVersions | Ruby versions to run the tests against in addition to the versions currently supported by all GOV.UK applications. Only applies to gems because they may be used in projects with different Ruby versions. | `[]`
 beforeTest | A closure containing commands to run before the test stage, such as environment variable configuration
 overrideTestTask | A closure containing commands to run to test the project. This will run instead of the default `bundle exec rake` |
