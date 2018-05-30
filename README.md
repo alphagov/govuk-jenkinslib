@@ -67,12 +67,13 @@ node {
 
 Parameter | Description | Default
 --- | --- | ---
-sassLint | Whether or not to run the SASS linter | `true`
-rubyLintDiff | Whether or not to pass the `--diff` option to `govuk-lint-ruby` | `true`
-extraRubyVersions | Ruby versions to run the tests against in addition to the versions currently supported by all GOV.UK applications. Only applies to gems because they may be used in projects with different Ruby versions. | `[]`
+afterTest | A closure containing commands to run after the test stage, such as report publishing |
 beforeTest | A closure containing commands to run before the test stage, such as environment variable configuration
+brakeman | Whether or not to run the Brakeman security scanner | `false`
+extraParameters | Provide details here of any extra parameters that can be used to configure this build.  See: https://jenkins.io/doc/pipeline/steps/workflow-multibranch/#code-properties-code-set-job-properties for details on the format and structure of these extra parameters. |
+extraRubyVersions | Ruby versions to run the tests against in addition to the versions currently supported by all GOV.UK applications. Only applies to gems because they may be used in projects with different Ruby versions. | `[]`
+newStyleDockerTags | Tag docker images with timestamp and git SHA rather than the default of the build number repoName Provide this if the Github Repo name for the app is different to the jenkins job name. | `false`
 overrideTestTask | A closure containing commands to run to test the project. This will run instead of the default `bundle exec rake` |
 publishingE2ETests | Whether or not to run the Publishing end-to-end tests. | `false`
-afterTest | A closure containing commands to run after the test stage, such as report publishing |
-newStyleDockerTags | Tag docker images with timestamp and git SHA rather than the default of the build number repoName Provide this if the Github Repo name for the app is different to the jenkins job name. | `false`
-extraParameters | Provide details here of any extra parameters that can be used to configure this build.  See: https://jenkins.io/doc/pipeline/steps/workflow-multibranch/#code-properties-code-set-job-properties for details on the format and structure of these extra parameters. |
+rubyLintDiff | Whether or not to pass the `--diff` option to `govuk-lint-ruby` | `true`
+sassLint | Whether or not to run the SASS linter | `true`
