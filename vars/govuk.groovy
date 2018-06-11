@@ -824,7 +824,7 @@ def hasDockerfile() {
 def buildDockerImage(imageName, tagName, quiet = false) {
   validateDockerFileRubyVersion()
   tagName = safeDockerTag(tagName)
-  args = quiet ? "--quiet ." : "."
+  args = "${quiet ? '--quiet' : ''} ."
   docker.build("govuk/${imageName}:${tagName}", args)
 }
 
