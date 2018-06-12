@@ -174,6 +174,12 @@ def nonDockerBuildTasks(options, jobName, repoName) {
     echo "WARNING: You do not have SASS linting turned on. Please install govuk-lint and enable."
   }
 
+  if (options.postgres96Lint != false) {
+    stage("Check for Postgres 9.6 features") {
+      postgres96Linter()
+    }
+  }
+
   if (options.beforeTest) {
     echo "Running pre-test tasks"
     options.beforeTest.call()
@@ -529,6 +535,17 @@ def sassLinter(String dirs = 'app/assets/stylesheets') {
   echo 'Running SASS linter'
   withStatsdTiming("sass_lint") {
     sh("bundle exec govuk-lint-sass ${dirs}")
+  }
+}
+
+/**
+ * Check for postgres 9.6 features: jsonb and brin
+ */
+def postgres96Linter(String base = 'master', String schema = 'db/schema.rb') {
+  echo 'Running Postgres 9.6 linter'
+  withStatsdTiming("postgres96_lint") {
+    sh("! git diff master ${base} -- ${file} | grep -i brin")
+    sh("! git diff master ${base} -- ${file} | grep -i jsonb")
   }
 }
 
