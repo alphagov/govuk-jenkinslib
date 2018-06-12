@@ -541,7 +541,7 @@ def sassLinter(String dirs = 'app/assets/stylesheets') {
 /**
  * Check for postgres 9.6 features: jsonb and brin
  */
-def postgres96Linter(String base = 'master', String schema = 'db/schema.rb') {
+def postgres96Linter(String base = 'master', String file = 'db/schema.rb') {
   echo 'Running Postgres 9.6 linter'
   withStatsdTiming("postgres96_lint") {
     sh("! git diff master ${base} -- ${file} | grep -i brin")
