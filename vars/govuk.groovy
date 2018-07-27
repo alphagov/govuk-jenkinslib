@@ -275,7 +275,7 @@ def runBrakemanSecurityScanner(repoName) {
   // Run brakeman's executable. If it finds security alerts it will return with
   // an exited code other than 0.
   def brakemanExitCode = sh(
-    script: "${JENKINS_HOME}/manually-installed-gems/gems/${gemVersion}/bin/brakeman .",
+    script: "${JENKINS_HOME}/manually-installed-gems/gems/${gemVersion}/bin/brakeman . --except CheckRenderInline",
     returnStatus: true
   )
 
