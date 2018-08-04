@@ -519,6 +519,7 @@ def rubyLinter(String dirs = 'app spec lib', boolean lintDiff = true) {
 
     withStatsdTiming("ruby_lint") {
       sh("bundle exec govuk-lint-ruby \
+         --parallel \
          ${lintDiff ? '--diff --cached' : ''} \
          --format html --out rubocop-${GIT_COMMIT}.html \
          --format clang \
