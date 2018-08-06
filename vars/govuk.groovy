@@ -153,7 +153,7 @@ def nonDockerBuildTasks(options, jobName, repoName) {
   }
 
   stage("Security analysis") {
-    if (options.brakeman) {
+    if (isRails() || options.brakeman) {
       runBrakemanSecurityScanner(repoName)
     }
   }
@@ -807,6 +807,15 @@ def hasLint() {
  */
 def isGem() {
   sh(script: "ls | grep gemspec", returnStatus: true) == 0
+}
+
+/**
+ * Is this a Rails app?
+ *
+ * Determined by checking the presence of "rails" in the `Gemfile`.
+ */
+def isRails() {
+  sh(script: "grep rails Gemfile", returnStatus: true) == 0
 }
 
 /**
