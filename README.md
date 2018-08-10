@@ -77,4 +77,5 @@ overrideTestTask | A closure containing commands to run to test the project. Thi
 postgres96Lint | Whether or not to forbid newer postgres features | `true`
 publishingE2ETests | Whether or not to run the Publishing end-to-end tests. | `false`
 rubyLintDiff | Whether or not to pass the `--diff` option to `govuk-lint-ruby` | `true`
+rubyLintRails | Whether or not to pass the `--rails` option to `govuk-lint-ruby` | `false`
 sassLint | Whether or not to run the SASS linter | `true`
