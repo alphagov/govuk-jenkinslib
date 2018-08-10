@@ -512,7 +512,7 @@ def setEnvGitCommit() {
 /**
  * Runs the ruby linter. Only lint commits that are not in master.
  */
-def rubyLinter(String dirs = 'app spec lib', boolean lintDiff, boolean lintRails) {
+def rubyLinter(String dirs = 'app spec lib', boolean lintDiff = true, boolean lintRails = false) {
   setEnvGitCommit()
   if (!isCurrentCommitOnMaster()) {
     echo 'Running Ruby linter'
