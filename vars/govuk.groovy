@@ -160,7 +160,7 @@ def nonDockerBuildTasks(options, jobName, repoName) {
 
   if (hasLint()) {
     stage("Lint Ruby") {
-      rubyLinter("app lib spec test", options.get('rubyLintDiff', true), options.get('rubyLintRails', false))
+      rubyLinter(options.get('rubyLintDirs', "app lib spec test"), options.get('rubyLintDiff', true), options.get('rubyLintRails', false))
     }
   } else {
     echo "WARNING: You do not have Ruby linting turned on. Please install govuk-lint and enable."
