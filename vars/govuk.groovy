@@ -21,6 +21,11 @@ def buildProject(Map options = [:]) {
       defaultValue: false,
       description: '--TESTING ONLY-- Whether to push the docker image to Google Container Registry.'
     ),
+    booleanParam(
+      name: 'RUN_DOCKER_TASKS',
+      defaultValue: true,
+      description: 'Whether to build and push the Docker image, if a Dockerfile exists.'
+    ),
     stringParam(
       name: 'SCHEMA_BRANCH',
       defaultValue: 'deployed-to-production',
@@ -91,7 +96,7 @@ def buildProject(Map options = [:]) {
       setEnvar("DISPLAY", ":99")
     }
 
-    if (hasDockerfile() && !params.IS_SCHEMA_TEST) {
+    if (hasDockerfile() && params.RUN_DOCKER_TASKS && !params.IS_SCHEMA_TEST) {
       parallel (
         "build" : { nonDockerBuildTasks(options, jobName, repoName) },
         "docker" : { dockerBuildTasks(options, jobName) }
@@ -117,7 +122,7 @@ def buildProject(Map options = [:]) {
           }
         }
 
-        if (hasDockerfile()) {
+        if (hasDockerfile() && params.RUN_DOCKER_TASKS) {
           stage("Tag Docker image") {
             dockerTagMasterBranch(jobName, env.BRANCH_NAME, env.BUILD_NUMBER)
           }
