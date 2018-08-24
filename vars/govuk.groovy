@@ -822,7 +822,7 @@ def isGem() {
  * Determined by checking the presence of "rails" in the `Gemfile`.
  */
 def isRails() {
-  sh(script: "grep rails Gemfile", returnStatus: true) == 0
+  new File("bin/rails").exists()
 }
 
 /**
