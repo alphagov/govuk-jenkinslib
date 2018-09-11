@@ -835,10 +835,10 @@ def isGem() {
 /**
  * Is this a Rails app?
  *
- * Determined by checking the presence of "rails" in the `Gemfile`.
+ * Determined by checking if bin/rails exists.
  */
 def isRails() {
-  new File("bin/rails").exists()
+  fileExists(file: "bin/rails")
 }
 
 /**
