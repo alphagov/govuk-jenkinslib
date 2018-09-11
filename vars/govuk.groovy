@@ -211,6 +211,23 @@ def nonDockerBuildTasks(options, jobName, repoName) {
         }
       }
     }
+
+    if (fileExists(file: "coverage/rcov")) {
+      stage("Ruby Code Coverage") {
+        step([$class: "RcovPublisher", reportDir: "coverage/rcov"])
+      }
+    }
+
+    if (fileExists("test/reports") ||
+        fileExists("spec/reports") ||
+        fileExists("features/reports")) {
+      stage("junit reports") {
+        junit(
+          testResults: "test/reports/*.xml, spec/reports/*.xml, features/reports/*.xml",
+          allowEmptyResults: true
+        )
+      }
+    }
   }
 
   if (options.publishingE2ETests == true && !params.IS_SCHEMA_TEST) {
