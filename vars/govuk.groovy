@@ -157,8 +157,8 @@ def nonDockerBuildTasks(options, jobName, repoName) {
     isGem() ? bundleGem() : bundleApp()
   }
 
-  stage("Security analysis") {
-    if (isRails() || options.brakeman) {
+  if (isRails() || options.brakeman) {
+    stage("Security analysis") {
       runBrakemanSecurityScanner(repoName)
     }
   }
