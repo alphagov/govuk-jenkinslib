@@ -192,9 +192,15 @@ def nonDockerBuildTasks(options, jobName, repoName) {
 
   // Prevent a project's tests from running in parallel on the same node
   lock("$jobName-$NODE_NAME-test") {
-    if (hasDatabase()) {
-      stage("Set up the database") {
-          runRakeTask("db:reset")
+    if (hasActiveRecordDatabase()) {
+      stage("Set up the ActiveRecord database") {
+        runRakeTask("db:reset")
+      }
+    }
+    
+    if (hasMongoidDatabase()) {
+      stage("Set up the Mongoid database") {
+        runRakeTask("db:mongoid:create_indexes")
       }
     }
 
@@ -846,8 +852,17 @@ def isRails() {
  *
  * Determined by checking the presence of a `database.yml` file
  */
-def hasDatabase() {
-  sh(script: "test -e config/database.yml", returnStatus: true) == 0
+def hasActiveRecordDatabase() {
+  fileExists(file: "config/database.yml")
+}
+
+/**
+ * Does this project use a Mongoid-style database?
+ *
+ * Determined by checking the presence of a `mongoid.yml` file.
+ */
+def hasMongoidDatabase() {
+  fileExists(file: "config/mongoid.yml")
 }
 
 def validateDockerFileRubyVersion() {
