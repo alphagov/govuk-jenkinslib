@@ -197,7 +197,7 @@ def nonDockerBuildTasks(options, jobName, repoName) {
         runRakeTask("db:reset")
       }
     }
-    
+
     if (hasMongoidDatabase()) {
       stage("Set up the Mongoid database") {
         runRakeTask("db:mongoid:create_indexes")
@@ -407,10 +407,10 @@ def checkoutDependent(String repository, options = [:], Closure closure = null) 
 }
 
 /**
-  * Check if the git HEAD is ahead of master.
-  * This will be false for development branches and true for release branches,
-  * and master itself.
-  */
+ * Check if the git HEAD is ahead of master.
+ * This will be false for development branches and true for release branches,
+ * and master itself.
+ */
 def isCurrentCommitOnMaster() {
   sh(
     script: 'git rev-list origin/master | grep $(git rev-parse HEAD)',
@@ -525,8 +525,8 @@ def isAllowedBranchBuild(
 
 def getGitCommit() {
   return sh(
-      script: 'git rev-parse --short HEAD',
-      returnStdout: true
+    script: 'git rev-parse --short HEAD',
+    returnStdout: true
   ).trim()
 }
 
@@ -947,9 +947,9 @@ def safeDockerTag(tagName) {
  */
 def uploadArtefactToS3(artefact_path, s3_path){
   withCredentials([[$class: 'UsernamePasswordMultiBinding',
-                     credentialsId: 'govuk-s3-artefact-creds',
-                     usernameVariable: 'AWS_ACCESS_KEY_ID',
-                     passwordVariable: 'AWS_SECRET_ACCESS_KEY']]){
+                    credentialsId: 'govuk-s3-artefact-creds',
+                    usernameVariable: 'AWS_ACCESS_KEY_ID',
+                    passwordVariable: 'AWS_SECRET_ACCESS_KEY']]){
     sh "s3cmd --region eu-west-1 --acl-public --access_key $AWS_ACCESS_KEY_ID --secret_key $AWS_SECRET_ACCESS_KEY put $artefact_path $s3_path"
   }
 }
@@ -982,17 +982,17 @@ def runPublishingE2ETests(appCommitishName, testBranch, repo, testCommand = "tes
     job: "publishing-e2e-tests/${testBranch}",
     parameters: [
       [$class: "StringParameterValue",
-        name: appCommitishName,
-        value: fullCommitHash],
+       name: appCommitishName,
+       value: fullCommitHash],
       [$class: "StringParameterValue",
-        name: "TEST_COMMAND",
-        value: testCommand],
+       name: "TEST_COMMAND",
+       value: testCommand],
       [$class: "StringParameterValue",
-        name: "ORIGIN_REPO",
-        value: repo],
+       name: "ORIGIN_REPO",
+       value: repo],
       [$class: "StringParameterValue",
-        name: "ORIGIN_COMMIT",
-        value: fullCommitHash]
+       name: "ORIGIN_COMMIT",
+       value: fullCommitHash]
     ],
     wait: false,
   )
@@ -1036,16 +1036,16 @@ def shellcheck(setFiles = [], setExcludes = []) {
   if (setFiles.empty) {
     sh("find . -type f ${excludes} -name '*.sh' | xargs shellcheck -e ${ignoreCodes.join(",")}")
   } else {
-  // Otherwise check each specified file or pattern
+    // Otherwise check each specified file or pattern
     sh("shellcheck -e ${ignoreCodes.join(",")} ${setFiles.join(" ")}")
   }
 
 }
 
 /*
-* This is a method to test that the external library loading
-* works as expect
-*/
+ * This is a method to test that the external library loading
+ * works as expect
+ */
 def pipelineTest() {
   sh("echo 'If you see this I am working as expected'")
 }
