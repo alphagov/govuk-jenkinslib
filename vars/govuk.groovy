@@ -165,7 +165,7 @@ def nonDockerBuildTasks(options, jobName, repoName) {
 
   if (hasLint()) {
     stage("Lint Ruby") {
-      rubyLinter(options.get('rubyLintDirs', "app lib spec test"), options.get('rubyLintDiff', false))
+      rubyLinter(options.get('rubyLintDirs', "app lib spec test"), options.get('rubyLintDiff', true))
     }
   } else {
     echo "WARNING: You do not have Ruby linting turned on. Please install govuk-lint and enable."
@@ -546,7 +546,7 @@ def setEnvGitCommit() {
 /**
  * Runs the ruby linter. Only lint commits that are not in master.
  */
-def rubyLinter(String dirs = 'app spec lib', boolean lintDiff = false) {
+def rubyLinter(String dirs = 'app spec lib', boolean lintDiff = true) {
   setEnvGitCommit()
   if (!isCurrentCommitOnMaster()) {
     echo 'Running Ruby linter'
