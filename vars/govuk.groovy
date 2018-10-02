@@ -332,7 +332,6 @@ def checkoutFromGitHubWithSSH(String repository, Map options = [:]) {
     branch: null,
     changelog: true,
     location: null,
-    shallow: true,
     org: "alphagov",
     poll: true,
     host: "github.com"
@@ -348,12 +347,7 @@ def checkoutFromGitHubWithSSH(String repository, Map options = [:]) {
 
   def extensions = [
     [
-      $class: "CleanCheckout",
-    ],
-    [
-      $class: 'CloneOption',
-      shallow: options.shallow,
-      noTags: options.shallow,
+      $class: "CleanCheckout"
     ]
   ]
 
