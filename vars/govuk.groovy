@@ -332,7 +332,6 @@ def checkoutFromGitHubWithSSH(String repository, Map options = [:]) {
     branch: null,
     changelog: true,
     location: null,
-    shallow: env.BRANCH_NAME != "master",
     org: "alphagov",
     poll: true,
     host: "github.com"
@@ -348,12 +347,7 @@ def checkoutFromGitHubWithSSH(String repository, Map options = [:]) {
 
   def extensions = [
     [
-      $class: "CleanCheckout",
-    ],
-    [
-      $class: 'CloneOption',
-      shallow: options.shallow,
-      noTags: options.shallow,
+      $class: "CleanCheckout"
     ]
   ]
 
@@ -709,7 +703,7 @@ def pushTag(String repository, String branch, String tag) {
       // if it does.
       if (releaseBranchExists()) {
         echo "Updating alphagov/${repository} release branch"
-        sh("git push git@github.com:alphagov/${repository}.git HEAD:refs/heads/release --force-with-lease")
+        sh("git push git@github.com:alphagov/${repository}.git HEAD:refs/heads/release")
       }
     }
   } else {
