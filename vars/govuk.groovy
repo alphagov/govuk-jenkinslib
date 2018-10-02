@@ -332,7 +332,7 @@ def checkoutFromGitHubWithSSH(String repository, Map options = [:]) {
     branch: null,
     changelog: true,
     location: null,
-    shallow: env.BRANCH_NAME != "master",
+    shallow: true,
     org: "alphagov",
     poll: true,
     host: "github.com"
