@@ -453,6 +453,12 @@ def mergeMasterBranch() {
   } else {
     echo "Current commit is not on master, so attempting merge of master " +
       "branch before proceeding with build"
+
+    sshagent(['govuk-ci-ssh-key']) {
+      sh("git fetch --no-tags --depth=30 origin " +
+         "+refs/heads/master:refs/remotes/origin/master " +
+         "refs/heads/${env.BRANCH_NAME}:refs/remotes/origin/${env.BRANCH_NAME}")
+    }
     sh('git merge --no-commit origin/master || git merge --abort')
   }
 }
