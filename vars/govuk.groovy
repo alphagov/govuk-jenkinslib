@@ -664,7 +664,7 @@ def runTests(String test_task = 'default') {
  * addition to the versions currently supported by all GOV.UK applications
  */
 def testGemWithAllRubies(extraRubyVersions = []) {
-  def rubyVersions = ["2.4", "2.5"]
+  def rubyVersions = ["2.4", "2.5", "2.6"]
 
   rubyVersions.addAll(extraRubyVersions)
 
