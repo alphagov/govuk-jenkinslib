@@ -17,11 +17,6 @@ def buildProject(Map options = [:]) {
       description: 'Identifies whether this build is being triggered to test a change to the content schemas'
     ),
     booleanParam(
-      name: 'PUSH_TO_GCR',
-      defaultValue: false,
-      description: '--TESTING ONLY-- Whether to push the docker image to Google Container Registry.'
-    ),
-    booleanParam(
       name: 'RUN_DOCKER_TASKS',
       defaultValue: true,
       description: 'Whether to build and push the Docker image, if a Dockerfile exists.'
@@ -277,10 +272,6 @@ def dockerBuildTasks(options, jobName) {
   if (!(env.BRANCH_NAME ==~ /^deployed-to/)) {
     stage("Push Docker image") {
       pushDockerImage(jobName, env.BRANCH_NAME)
-
-      if (params.PUSH_TO_GCR) {
-        pushDockerImageToGCR(jobName, env.BRANCH_NAME)
-      }
     }
   }
 }
@@ -923,25 +914,6 @@ def pushDockerImage(imageName, tagName, asTag = null) {
   tagName = safeDockerTag(tagName)
   docker.withRegistry('https://index.docker.io/v1/', 'govukci-docker-hub') {
     docker.image("govuk/${imageName}:${tagName}").push(asTag ?: tagName)
-  }
-}
-
-def pushDockerImageToGCR(imageName, tagName) {
-  tagName = safeDockerTag(tagName)
-  gcrName = "gcr.io/govuk-test/${imageName}"
-  docker.build(gcrName)
-
-  withCredentials([file(credentialsId: 'govuk-test', variable: 'GCR_CRED_FILE')]) {
-    // We don't want to interpolate this command as GCR_CRED_FILE is set as an
-    // environment variable in bash.
-    command = 'gcloud auth activate-service-account --key-file "$GCR_CRED_FILE"'
-    sh command
-    // We do want to interpolate this command to get the value of gcrName
-    command = "gcloud docker -- push ${gcrName}"
-    sh command
-    // Add the tag, again this needs to be interpolated
-    command = "gcloud container images add-tag ${gcrName} ${gcrName}:${tagName}"
-    sh command
   }
 }
 
