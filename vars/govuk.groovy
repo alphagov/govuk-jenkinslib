@@ -160,7 +160,7 @@ def nonDockerBuildTasks(options, jobName, repoName) {
 
   if (hasLint()) {
     stage("Lint Ruby") {
-      rubyLinter(options.get('rubyLintDirs', "app lib spec test"), options.get('rubyLintDiff', true))
+      rubyLinter(repoName, options.get('rubyLintDirs', "app lib spec test"), options.get('rubyLintDiff', true))
     }
   } else {
     echo "WARNING: You do not have Ruby linting turned on. Please install govuk-lint and enable."
@@ -168,7 +168,7 @@ def nonDockerBuildTasks(options, jobName, repoName) {
 
   if (hasAssets() && hasLint() && options.sassLint != false) {
     stage("Lint SASS") {
-      sassLinter()
+      sassLinter(repoName)
     }
   } else {
     echo "WARNING: You do not have SASS linting turned on. Please install govuk-lint and enable."
@@ -543,19 +543,26 @@ def setEnvGitCommit() {
 /**
  * Runs the ruby linter. Only lint commits that are not in master.
  */
-def rubyLinter(String dirs = 'app spec lib', boolean lintDiff = true) {
+def rubyLinter(String repoName, String dirs = 'app spec lib', boolean lintDiff = true) {
   setEnvGitCommit()
+
   if (!isCurrentCommitOnMaster()) {
     echo 'Running Ruby linter'
 
     withStatsdTiming("ruby_lint") {
-      sh("bundle exec govuk-lint-ruby \
+      def lintIsOkay = runsSuccessfully("bundle exec govuk-lint-ruby \
          --parallel \
          ${lintDiff ? '--diff --cached' : ''} \
          --format html --out rubocop-${GIT_COMMIT}.html \
          --format clang \
          ${dirs}"
       )
+
+      if (lintIsOkay) {
+        setBuildStatus("ruby-linter", getFullCommitHash(), "No Ruby linting issues found", "SUCCESS", repoName)
+      } else {
+        setBuildStatus("ruby-linter", getFullCommitHash(), "Ruby linter found issues", "FAILURE", repoName)
+      }
     }
   }
 }
@@ -563,11 +570,22 @@ def rubyLinter(String dirs = 'app spec lib', boolean lintDiff = true) {
 /**
  * Runs the SASS linter
  */
-def sassLinter(String dirs = 'app/assets/stylesheets') {
+def sassLinter(String dirs = 'app/assets/stylesheets', String repoName) {
   echo 'Running SASS linter'
   withStatsdTiming("sass_lint") {
-    sh("bundle exec govuk-lint-sass ${dirs}")
+    if (runsSuccessfully("bundle exec govuk-lint-sass ${dirs}")) {
+      setBuildStatus("css-linter", getFullCommitHash(), "No CSS linting issues found", "SUCCESS", repoName)
+    } else {
+      setBuildStatus("css-linter", getFullCommitHash(), "CSS linter found issues", "FAILURE", repoName)
+    }
   }
+}
+
+/**
+ * Runs a command and returns true it ran successfully
+ */
+def runsSuccessfully(command) {
+  return sh(script: command, returnStatus: true) == 0
 }
 
 /**
