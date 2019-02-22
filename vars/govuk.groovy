@@ -204,6 +204,12 @@ def nonDockerBuildTasks(options, jobName, repoName) {
       }
     }
 
+    if (hasAssets() && !params.IS_SCHEMA_TEST) {
+      stage("Precompile assets") {
+        precompileAssets()
+      }
+    }
+
     if (options.overrideTestTask) {
       echo "Running custom test task"
       options.overrideTestTask.call()
@@ -260,12 +266,6 @@ def nonDockerBuildTasks(options, jobName, repoName) {
   if (options.afterTest) {
     echo "Running post-test tasks"
     options.afterTest.call()
-  }
-
-  if (hasAssets() && !params.IS_SCHEMA_TEST) {
-    stage("Precompile assets") {
-      precompileAssets()
-    }
   }
 }
 
@@ -596,7 +596,7 @@ def postgres96Linter(String base = 'master', String file = 'db/schema.rb') {
 def precompileAssets() {
   echo 'Precompiling the assets'
   withStatsdTiming("assets_precompile") {
-    sh('RAILS_ENV=production SECRET_KEY_BASE=1 GOVUK_WEBSITE_ROOT=http://www.test.gov.uk GOVUK_APP_DOMAIN=test.gov.uk GOVUK_APP_DOMAIN_EXTERNAL=test.gov.uk GOVUK_ASSET_ROOT=https://static.test.gov.uk GOVUK_ASSET_HOST=https://static.test.gov.uk bundle exec rake assets:clobber assets:precompile')
+    sh('RAILS_ENV=test SECRET_KEY_BASE=1 GOVUK_WEBSITE_ROOT=http://www.test.gov.uk GOVUK_APP_DOMAIN=test.gov.uk GOVUK_APP_DOMAIN_EXTERNAL=test.gov.uk GOVUK_ASSET_ROOT=https://static.test.gov.uk GOVUK_ASSET_HOST=https://static.test.gov.uk bundle exec rake assets:clobber assets:precompile')
   }
 }
 
