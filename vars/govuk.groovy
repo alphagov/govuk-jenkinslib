@@ -204,7 +204,7 @@ def nonDockerBuildTasks(options, jobName, repoName) {
       }
     }
 
-    if (hasAssets() && !params.IS_SCHEMA_TEST) {
+    if (hasAssets()) {
       stage("Precompile assets") {
         precompileAssets()
       }
