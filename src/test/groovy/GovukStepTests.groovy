@@ -201,4 +201,24 @@ class GovukStepTests extends BasePipelineTest {
     assertJobStatusFailure()
   }
 
+  @Test
+  void test_shellcheck_with_setFiles_and_setExcludes_arguments_throws_an_error() throws Exception {
+    def script = loadScript(scriptName)
+    try{
+      script.shellcheck([ 'foo' ], [ 'bar' ])
+      //NOOP
+    } catch(e){
+      //NOOP
+    }
+    printCallStack()
+
+    // then an error is thrown
+    assertTrue(helper.callStack.findAll { call ->
+      call.methodName == 'error'
+    }.any { call ->
+      callArgsToString(call).contains('Specifying files cannot be used together with setting excludes')
+    })
+    assertJobStatusFailure()
+  }
+
 }
