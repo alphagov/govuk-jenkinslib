@@ -23,6 +23,12 @@ class GovukStepTests extends BasePipelineTest {
 
     helper.registerAllowedMethod('build', [Map.class], { 'OK' })
     helper.registerAllowedMethod('echo', [String.class], { s -> s })
+    helper.registerAllowedMethod('error', [String.class], { s ->
+      updateBuildStatus('FAILURE')
+      throw new Exception(s)
+    })
+    helper.registerAllowedMethod('fileExists', [Map.class], { true })
+    helper.registerAllowedMethod('readFile', [Map.class], { 'OK' })
     helper.registerAllowedMethod('sshagent', [Map.class, Closure.class], { map, body -> body() })
     helper.registerAllowedMethod('string', [Map.class], { s -> s })
     helper.registerAllowedMethod('sh', [String.class], { s -> s })
@@ -55,7 +61,6 @@ class GovukStepTests extends BasePipelineTest {
   @Test
   void test_has_active_record_database() throws Exception {
     def script = loadScript(scriptName)
-    helper.registerAllowedMethod('fileExists', [Map.class], { true })
     assertTrue(script.hasActiveRecordDatabase())
     printCallStack()
   }
@@ -71,7 +76,6 @@ class GovukStepTests extends BasePipelineTest {
   @Test
   void test_has_mongo_id_database() throws Exception {
     def script = loadScript(scriptName)
-    helper.registerAllowedMethod('fileExists', [Map.class], { true })
     assertTrue(script.hasMongoidDatabase())
     printCallStack()
   }
@@ -135,7 +139,6 @@ class GovukStepTests extends BasePipelineTest {
   @Test
   void test_is_rails() throws Exception {
     def script = loadScript(scriptName)
-    helper.registerAllowedMethod('fileExists', [Map.class], { true })
     assertTrue(script.isRails())
     printCallStack()
   }
@@ -168,6 +171,34 @@ class GovukStepTests extends BasePipelineTest {
       callArgsToString(call).trim().contains('job=integration-app-deploy')
     })
     assertJobStatusSuccess()
+  }
+
+  @Test
+  void test_validateDockerFileRubyVersion_without_matching() throws Exception {
+    def script = loadScript(scriptName)
+    helper.registerAllowedMethod('sh', [Map.class], { m ->
+       if(m.script.contains('FROM ruby')){
+         1
+       } else {
+         'base'
+       }
+    })
+
+    try{
+      script.validateDockerFileRubyVersion()
+      //NOOP
+    } catch(e){
+      //NOOP
+    }
+    printCallStack()
+
+    // then an error is thrown
+    assertTrue(helper.callStack.findAll { call ->
+      call.methodName == 'error'
+    }.any { call ->
+      callArgsToString(call).contains('Dockerfile uses base image "base", this mismatches .ruby-version "OK"')
+    })
+    assertJobStatusFailure()
   }
 
 }
