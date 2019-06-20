@@ -79,3 +79,4 @@ publishingE2ETests | Whether or not to run the Publishing end-to-end tests. | `f
 rubyLintDiff | Whether or not to pass the `--diff` option to `govuk-lint-ruby` | `true`
 rubyLintRails | Whether or not to pass the `--rails` option to `govuk-lint-ruby` | `false`
 sassLint | Whether or not to run the SASS linter | `true`
+skipDeployToIntegration | Whether or not to skip the "Deploy to integration" stage | `false`
