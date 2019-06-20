@@ -121,8 +121,10 @@ def buildProject(Map options = [:]) {
           }
         }
 
-        stage("Deploy to integration") {
-          deployIntegration(jobName, env.BRANCH_NAME, "release_${env.BUILD_NUMBER}", 'deploy')
+        if (!options.skipDeployToIntegration) {
+          stage("Deploy to integration") {
+            deployIntegration(jobName, env.BRANCH_NAME, "release_${env.BUILD_NUMBER}", 'deploy')
+          }
         }
       }
     }
