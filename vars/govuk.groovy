@@ -286,21 +286,30 @@ def dockerBuildTasks(options, jobName) {
  * @param repoName Name of the alphagov repository
  */
 def runBrakemanSecurityScanner(repoName) {
-  // Install the brakeman gem and parse the output to retrieve the version we
-  // just installed. We'll use that version to run the brakeman binary. We need
-  // to do this because we can't just `gem install` the gem on Jenkins and want
-  // to prevent having to add the gem to every Gemfile.
-  def gemVersion = sh(
-    script: "gem install --no-document -q --install-dir ${JENKINS_HOME}/manually-installed-gems brakeman | grep 'Successfully installed brakeman'",
-    returnStdout: true
-  ).replaceAll("Successfully installed ", "").trim()
+  def brakemanExitCode = -1
 
-  // Run brakeman's executable. If it finds security alerts it will return with
-  // an exited code other than 0.
-  def brakemanExitCode = sh(
-    script: "${JENKINS_HOME}/manually-installed-gems/gems/${gemVersion}/bin/brakeman . --except CheckRenderInline",
-    returnStatus: true
-  )
+  if (hasBrakeman()) {
+    brakemanExitCode = sh(
+      script: "bundle exec brakeman . --except CheckRenderInline",
+      returnStatus: true
+    )
+  } else {
+    // Install the brakeman gem and parse the output to retrieve the version we
+    // just installed. We'll use that version to run the brakeman binary. We need
+    // to do this because we can't just `gem install` the gem on Jenkins and want
+    // to prevent having to add the gem to every Gemfile.
+    def gemVersion = sh(
+      script: "gem install --no-document -q --install-dir ${JENKINS_HOME}/manually-installed-gems brakeman | grep 'Successfully installed brakeman'",
+      returnStdout: true
+    ).replaceAll("Successfully installed ", "").trim()
+
+    // Run brakeman's executable. If it finds security alerts it will return with
+    // an exited code other than 0.
+    brakemanExitCode = sh(
+      script: "${JENKINS_HOME}/manually-installed-gems/gems/${gemVersion}/bin/brakeman . --except CheckRenderInline",
+      returnStatus: true
+    )
+  }
 
   if (brakemanExitCode == 0) {
     setBuildStatus("security", getFullCommitHash(), "No security issues found", "SUCCESS", repoName)
@@ -819,6 +828,13 @@ def hasAssets() {
  */
 def hasLint() {
   sh(script: "grep 'govuk-lint' Gemfile.lock", returnStatus: true) == 0
+}
+
+/**
+ * Does this project use Brakeman?
+ */
+def hasBrakeman() {
+  sh(script: "grep 'brakeman' Gemfile.lock", returnStatus: true) == 0
 }
 
 /**
