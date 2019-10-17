@@ -105,7 +105,7 @@ def buildProject(Map options = [:]) {
       nonDockerBuildTasks(options, jobName, repoName)
     }
 
-    if (env.BRANCH_NAME == "master" && !params.IS_SCHEMA_TEST) {
+    if (env.BRANCH_NAME == "rubygem-release" && !params.IS_SCHEMA_TEST) {
       if (isGem()) {
         stage("Publish Gem to Rubygems") {
           publishGem(repoName, env.BRANCH_NAME)
@@ -753,50 +753,53 @@ def deployIntegration(String application, String branch, String tag, String depl
  * @param branch Branch name being published. Only publishes if this is 'master'
  */
 def publishGem(String repository, String branch) {
-  if (branch != 'master') {
-    return
-  }
-
-  def version = sh(
-    script: /ruby -e "puts eval(File.read('${repository}.gemspec'), TOPLEVEL_BINDING).version.to_s"/,
-    returnStdout: true
-  ).trim()
-
-  sshagent(['govuk-ci-ssh-key']) {
-    echo "Fetching remote tags"
-    sh("git fetch --tags")
-  }
-
-  def escapedVersion = version.replaceAll(/\./, /\\\\./)
-  def versionAlreadyPublished = sh(
-    script: /gem list ^${repository}\$ --remote --all --quiet | grep [^0-9\\.]${escapedVersion}[^0-9\\.]/,
-    returnStatus: true
-  ) == 0
-
-  if (versionAlreadyPublished) {
-    echo "Version ${version} has already been published to rubygems.org. Skipping publication."
-  } else {
-    echo('Publishing gem')
-    sh("gem build ${repository}.gemspec")
-    sh("gem push ${repository}-${version}.gem")
-  }
-
-  def taggedReleaseExists = false
-
-  sshagent(['govuk-ci-ssh-key']) {
-    taggedReleaseExists = sh(
-      script: "git ls-remote --exit-code --tags origin v${version}",
-      returnStatus: true
-    ) == 0
-  }
-
-  if (taggedReleaseExists) {
-    echo "Version ${version} has already been tagged on Github. Skipping publication."
-  } else {
-    echo('Pushing tag')
-    pushTag(repository, branch, 'v' + version)
-  }
+  println "BRANCH IS" + branch
 }
+// def publishGem(String repository, String branch) {
+//   if (branch != 'rubygem-release') {
+//     return
+//   }
+
+//   def version = sh(
+//     script: /ruby -e "puts eval(File.read('${repository}.gemspec'), TOPLEVEL_BINDING).version.to_s"/,
+//     returnStdout: true
+//   ).trim()
+
+//   sshagent(['govuk-ci-ssh-key']) {
+//     echo "Fetching remote tags"
+//     sh("git fetch --tags")
+//   }
+
+//   def escapedVersion = version.replaceAll(/\./, /\\\\./)
+//   def versionAlreadyPublished = sh(
+//     script: /gem list ^${repository}\$ --remote --all --quiet | grep [^0-9\\.]${escapedVersion}[^0-9\\.]/,
+//     returnStatus: true
+//   ) == 0
+
+//   if (versionAlreadyPublished) {
+//     echo "Version ${version} has already been published to rubygems.org. Skipping publication."
+//   } else {
+//     echo('Publishing gem')
+//     sh("gem build ${repository}.gemspec")
+//     sh("gem push ${repository}-${version}.gem")
+//   }
+
+//   def taggedReleaseExists = false
+
+//   sshagent(['govuk-ci-ssh-key']) {
+//     taggedReleaseExists = sh(
+//       script: "git ls-remote --exit-code --tags origin v${version}",
+//       returnStatus: true
+//     ) == 0
+//   }
+
+//   if (taggedReleaseExists) {
+//     echo "Version ${version} has already been tagged on Github. Skipping publication."
+//   } else {
+//     echo('Pushing tag')
+//     pushTag(repository, branch, 'v' + version)
+//   }
+// }
 
 /**
  * Time the function and send the result to statsd
