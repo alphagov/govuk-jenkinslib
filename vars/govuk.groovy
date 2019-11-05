@@ -623,13 +623,20 @@ def setupDb() {
 }
 
 /**
+ * Get the number of available processors
+ */
+def availableProcessors() {
+  Runtime.getRuntime().availableProcessors()
+}
+
+/**
  * Bundles all the gems in deployment mode
  */
 def bundleApp() {
   echo 'Bundling'
   withStatsdTiming("bundle") {
     lock ("bundle_install-$NODE_NAME") {
-      sh("bundle install --path ${JENKINS_HOME}/bundles --deployment --without development")
+      sh("bundle install --jobs=${availableProcessors()} --path ${JENKINS_HOME}/bundles --deployment --without development")
     }
   }
 }
@@ -641,7 +648,7 @@ def bundleGem() {
   echo 'Bundling'
   withStatsdTiming("bundle") {
     lock ("bundle_install-$NODE_NAME") {
-      sh("bundle install --path ${JENKINS_HOME}/bundles")
+      sh("bundle install --jobs=${availableProcessors()} --path ${JENKINS_HOME}/bundles")
     }
   }
 }
