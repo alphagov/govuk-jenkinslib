@@ -4,10 +4,18 @@ def buildProject(Map options = [:]) {
 
   def jobName = JOB_NAME.split('/')[0]
   def repoName
+  def gemName
+
   if (options.repoName) {
     repoName = options.repoName
   } else {
     repoName = jobName
+  }
+
+  if (options.gemName) {
+    gemName = options.gemName
+  } else {
+    gemName = repoName
   }
 
   def parameterDefinitions = [
@@ -108,7 +116,7 @@ def buildProject(Map options = [:]) {
     if (env.BRANCH_NAME == "master" && !params.IS_SCHEMA_TEST) {
       if (isGem()) {
         stage("Publish Gem to Rubygems") {
-          publishGem(repoName, env.BRANCH_NAME)
+          publishGem(gemName, repoName, env.BRANCH_NAME)
         }
       } else {
         stage("Push release tag") {
@@ -756,16 +764,17 @@ def deployIntegration(String application, String branch, String tag, String depl
 /**
  * Publish a gem to rubygems.org
  *
- * @param repository Name of the gem repository. This should match the name of the gemspec file.
+ * @param name Name of the gem. This should match the name of the gemspec file.
+ * @param repository Name of the repository. This is used to add a git tag for the release.
  * @param branch Branch name being published. Only publishes if this is 'master'
  */
-def publishGem(String repository, String branch) {
+def publishGem(String name, String repository, String branch) {
   if (branch != 'master') {
     return
   }
 
   def version = sh(
-    script: /ruby -e "puts eval(File.read('${repository}.gemspec'), TOPLEVEL_BINDING).version.to_s"/,
+    script: /ruby -e "puts eval(File.read('${name}.gemspec'), TOPLEVEL_BINDING).version.to_s"/,
     returnStdout: true
   ).trim()
 
@@ -776,7 +785,7 @@ def publishGem(String repository, String branch) {
 
   def escapedVersion = version.replaceAll(/\./, /\\\\./)
   def versionAlreadyPublished = sh(
-    script: /gem list ^${repository}\$ --remote --all --quiet | grep [^0-9\\.]${escapedVersion}[^0-9\\.]/,
+    script: /gem list ^${name}\$ --remote --all --quiet | grep [^0-9\\.]${escapedVersion}[^0-9\\.]/,
     returnStatus: true
   ) == 0
 
@@ -784,8 +793,8 @@ def publishGem(String repository, String branch) {
     echo "Version ${version} has already been published to rubygems.org. Skipping publication."
   } else {
     echo('Publishing gem')
-    sh("gem build ${repository}.gemspec")
-    sh("gem push ${repository}-${version}.gem")
+    sh("gem build ${name}.gemspec")
+    sh("gem push ${name}-${version}.gem")
   }
 
   def taggedReleaseExists = false
