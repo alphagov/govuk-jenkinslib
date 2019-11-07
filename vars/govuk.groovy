@@ -187,7 +187,7 @@ def nonDockerBuildTasks(options, jobName, repoName) {
       lintSCSS()
     }
   } else {
-    echo "WARNING: You do not have scss-lint installed.
+    echo "WARNING: You do not have scss-lint installed."
   }
 
   if (options.postgres96Lint != false) {
