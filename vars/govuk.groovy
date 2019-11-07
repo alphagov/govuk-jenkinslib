@@ -166,20 +166,28 @@ def nonDockerBuildTasks(options, jobName, repoName) {
     }
   }
 
-  if (hasLint()) {
+  if (hasGovukLint()) {
     stage("Lint Ruby") {
       rubyLinter(options.get('rubyLintDirs', "app lib spec test"))
     }
+  } else if (hasRubocop()) {
+    stage("Lint Ruby") {
+      lintRuby(options.get('rubyLintDirs', "app lib spec test"))
+    }
   } else {
-    echo "WARNING: You do not have Ruby linting turned on. Please install govuk-lint and enable."
+    echo "WARNING: You do not have Rubocop installed."
   }
 
-  if (hasAssets() && hasLint() && options.sassLint != false) {
+  if (hasAssets() && hasGovukLint() && options.sassLint != false) {
     stage("Lint SASS") {
       sassLinter()
     }
+  } else if (hasAssets() && hasSCSSLint() && options.sassLint != false) {
+    stage("Lint SCSS") {
+      lintSCSS()
+    }
   } else {
-    echo "WARNING: You do not have SASS linting turned on. Please install govuk-lint and enable."
+    echo "WARNING: You do not have scss-lint installed.
   }
 
   if (options.postgres96Lint != false) {
@@ -562,7 +570,7 @@ def setEnvGitCommit() {
 }
 
 /**
- * Runs the ruby linter. Only lint commits that are not in master.
+ * Runs govuk-lint-ruby (deprecated). Only lint commits that are not in master.
  */
 def rubyLinter(String dirs = 'app spec lib') {
   setEnvGitCommit()
@@ -581,12 +589,41 @@ def rubyLinter(String dirs = 'app spec lib') {
 }
 
 /**
- * Runs the SASS linter
+ * Runs RuboCop. Only lint commits that are not in master.
+ */
+def lintRuby(String dirs = 'app spec lib') {
+  setEnvGitCommit()
+  if (!isCurrentCommitOnMaster()) {
+    echo 'Running RuboCop'
+
+    withStatsdTiming("ruby_lint") {
+      sh("bundle exec rubocop \
+         --parallel \
+         --format html --out rubocop-${GIT_COMMIT}.html \
+         --format clang \
+         ${dirs}"
+      )
+    }
+  }
+}
+
+/**
+ * Runs govuk-lint-sass (deprecated)
  */
 def sassLinter(String dirs = 'app/assets/stylesheets') {
   echo 'Running SASS linter'
   withStatsdTiming("sass_lint") {
     sh("bundle exec govuk-lint-sass ${dirs}")
+  }
+}
+
+/**
+ * Runs scss-lint
+ */
+def lintSCSS(String dirs = 'app/assets/stylesheets') {
+  echo 'Running scss-lint'
+  withStatsdTiming("sass_lint") {
+    sh("bundle exec scss-lint ${dirs}")
   }
 }
 
@@ -842,8 +879,22 @@ def hasAssets() {
 /**
  * Does this project use GOV.UK lint?
  */
-def hasLint() {
+def hasGovukLint() {
   sh(script: "grep 'govuk-lint' Gemfile.lock", returnStatus: true) == 0
+}
+
+/**
+ * Does this project use Rubocop?
+ */
+def hasRubocop() {
+  sh(script: "grep 'rubocop' Gemfile.lock", returnStatus: true) == 0
+}
+
+/**
+ * Does this project use scss-lint?
+ */
+def hasSCSSLint() {
+  sh(script: "grep 'scss_lint' Gemfile.lock", returnStatus: true) == 0
 }
 
 /**
