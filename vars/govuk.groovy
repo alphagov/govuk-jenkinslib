@@ -564,7 +564,7 @@ def setEnvGitCommit() {
 /**
  * Runs RuboCop. Only lint commits that are not in master.
  */
-def lintRuby(String dirs = 'app spec lib') {
+def lintRuby {
   setEnvGitCommit()
   if (!isCurrentCommitOnMaster()) {
     echo 'Running RuboCop'
@@ -573,8 +573,7 @@ def lintRuby(String dirs = 'app spec lib') {
       sh("bundle exec rubocop \
          --parallel \
          --format html --out rubocop-${GIT_COMMIT}.html \
-         --format clang \
-         ${dirs}"
+         --format clang"
       )
     }
   }
