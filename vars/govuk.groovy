@@ -166,11 +166,7 @@ def nonDockerBuildTasks(options, jobName, repoName) {
     }
   }
 
-  if (hasGovukLint()) {
-    stage("Lint Ruby") {
-      rubyLinter(options.get('rubyLintDirs', "app lib spec test"))
-    }
-  } else if (hasRubocop()) {
+  if (hasRubocop()) {
     stage("Lint Ruby") {
       lintRuby(options.get('rubyLintDirs', "app lib spec test"))
     }
@@ -178,11 +174,7 @@ def nonDockerBuildTasks(options, jobName, repoName) {
     echo "WARNING: You do not have Rubocop installed."
   }
 
-  if (hasAssets() && hasGovukLint() && options.sassLint != false) {
-    stage("Lint SASS") {
-      sassLinter()
-    }
-  } else if (hasAssets() && hasSCSSLint() && options.sassLint != false) {
+  if (hasAssets() && hasSCSSLint() && options.sassLint != false) {
     stage("Lint SCSS") {
       lintSCSS()
     }
@@ -570,25 +562,6 @@ def setEnvGitCommit() {
 }
 
 /**
- * Runs govuk-lint-ruby (deprecated). Only lint commits that are not in master.
- */
-def rubyLinter(String dirs = 'app spec lib') {
-  setEnvGitCommit()
-  if (!isCurrentCommitOnMaster()) {
-    echo 'Running Ruby linter'
-
-    withStatsdTiming("ruby_lint") {
-      sh("bundle exec govuk-lint-ruby \
-         --parallel \
-         --format html --out rubocop-${GIT_COMMIT}.html \
-         --format clang \
-         ${dirs}"
-      )
-    }
-  }
-}
-
-/**
  * Runs RuboCop. Only lint commits that are not in master.
  */
 def lintRuby(String dirs = 'app spec lib') {
@@ -874,13 +847,6 @@ def withStatsdTiming(key, fn) {
  */
 def hasAssets() {
   sh(script: "test -d app/assets", returnStatus: true) == 0
-}
-
-/**
- * Does this project use GOV.UK lint?
- */
-def hasGovukLint() {
-  sh(script: "grep 'govuk-lint' Gemfile.lock", returnStatus: true) == 0
 }
 
 /**
