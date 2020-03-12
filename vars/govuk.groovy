@@ -168,7 +168,7 @@ def nonDockerBuildTasks(options, jobName, repoName) {
 
   if (hasRubocop()) {
     stage("Lint Ruby") {
-      lintRuby(options.get('rubyLintDirs', "app lib spec test"))
+      lintRuby()
     }
   } else {
     echo "WARNING: You do not have Rubocop installed."
