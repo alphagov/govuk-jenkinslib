@@ -564,7 +564,7 @@ def setEnvGitCommit() {
 /**
  * Runs RuboCop. Only lint commits that are not in master.
  */
-def lintRuby {
+def lintRuby() {
   setEnvGitCommit()
   if (!isCurrentCommitOnMaster()) {
     echo 'Running RuboCop'
