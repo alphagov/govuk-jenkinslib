@@ -331,9 +331,7 @@ def runBrakemanSecurityScanner(repoName) {
  */
 def cleanupGit() {
   echo 'Cleaning up git'
-  withStatsdTiming("cleanup_git") {
-    sh('git clean -fdx')
-  }
+  sh('git clean -fdx')
 }
 
 /**
@@ -376,23 +374,21 @@ def checkoutFromGitHubWithSSH(String repository, Map options = [:]) {
     ]
   }
 
-  withStatsdTiming("github_ssh_checkout") {
-    checkout([
-      changelog: options.changelog,
-      poll: options.poll,
-      scm: [
-        $class: 'GitSCM',
-        branches: branches,
-        doGenerateSubmoduleConfigurations: false,
-        extensions: extensions,
-        submoduleCfg: [],
-        userRemoteConfigs: [[
-          credentialsId: 'govuk-ci-ssh-key',
-          url: "git@${options.host}:${options.org}/${repository}.git"
-        ]]
-      ]
-    ])
-  }
+  checkout([
+    changelog: options.changelog,
+    poll: options.poll,
+    scm: [
+      $class: 'GitSCM',
+      branches: branches,
+      doGenerateSubmoduleConfigurations: false,
+      extensions: extensions,
+      submoduleCfg: [],
+      userRemoteConfigs: [[
+        credentialsId: 'govuk-ci-ssh-key',
+        url: "git@${options.host}:${options.org}/${repository}.git"
+      ]]
+    ]
+  ])
 }
 
 /**
@@ -569,13 +565,11 @@ def lintRuby() {
   if (!isCurrentCommitOnMaster()) {
     echo 'Running RuboCop'
 
-    withStatsdTiming("ruby_lint") {
-      sh("bundle exec rubocop \
-         --parallel \
-         --format html --out rubocop-${GIT_COMMIT}.html \
-         --format clang"
-      )
-    }
+    sh("bundle exec rubocop \
+       --parallel \
+       --format html --out rubocop-${GIT_COMMIT}.html \
+       --format clang"
+    )
   }
 }
 
@@ -584,9 +578,7 @@ def lintRuby() {
  */
 def sassLinter(String dirs = 'app/assets/stylesheets') {
   echo 'Running SASS linter'
-  withStatsdTiming("sass_lint") {
-    sh("bundle exec govuk-lint-sass ${dirs}")
-  }
+  sh("bundle exec govuk-lint-sass ${dirs}")
 }
 
 /**
@@ -594,9 +586,7 @@ def sassLinter(String dirs = 'app/assets/stylesheets') {
  */
 def lintSCSS(String dirs = 'app/assets/stylesheets') {
   echo 'Running scss-lint'
-  withStatsdTiming("sass_lint") {
-    sh("bundle exec scss-lint ${dirs}")
-  }
+  sh("bundle exec scss-lint ${dirs}")
 }
 
 /**
@@ -604,10 +594,8 @@ def lintSCSS(String dirs = 'app/assets/stylesheets') {
  */
 def postgres96Linter(String base = 'master', String file = 'db/schema.rb') {
   echo 'Running Postgres 9.6 linter'
-  withStatsdTiming("postgres96_lint") {
-    sh("! git diff master ${base} -- ${file} | grep -i brin")
-    sh("! git diff master ${base} -- ${file} | grep -i jsonb")
-  }
+  sh("! git diff master ${base} -- ${file} | grep -i brin")
+  sh("! git diff master ${base} -- ${file} | grep -i jsonb")
 }
 
 /**
@@ -615,9 +603,7 @@ def postgres96Linter(String base = 'master', String file = 'db/schema.rb') {
  */
 def precompileAssets() {
   echo 'Precompiling the assets'
-  withStatsdTiming("assets_precompile") {
-    sh('RAILS_ENV=test SECRET_KEY_BASE=1 GOVUK_WEBSITE_ROOT=http://www.test.gov.uk GOVUK_APP_DOMAIN=test.gov.uk GOVUK_APP_DOMAIN_EXTERNAL=test.gov.uk GOVUK_ASSET_ROOT=https://static.test.gov.uk GOVUK_ASSET_HOST=https://static.test.gov.uk bundle exec rake assets:clobber assets:precompile')
-  }
+  sh('RAILS_ENV=test SECRET_KEY_BASE=1 GOVUK_WEBSITE_ROOT=http://www.test.gov.uk GOVUK_APP_DOMAIN=test.gov.uk GOVUK_APP_DOMAIN_EXTERNAL=test.gov.uk GOVUK_ASSET_ROOT=https://static.test.gov.uk GOVUK_ASSET_HOST=https://static.test.gov.uk bundle exec rake assets:clobber assets:precompile')
 }
 
 /**
@@ -634,9 +620,7 @@ def contentSchemaDependency(String schemaGitCommit = 'deployed-to-production') {
  */
 def setupDb() {
   echo 'Setting up database'
-  withStatsdTiming("setup_db") {
-    sh('RAILS_ENV=test bundle exec rake db:environment:set db:drop db:create db:schema:load')
-  }
+  sh('RAILS_ENV=test bundle exec rake db:environment:set db:drop db:create db:schema:load')
 }
 
 /**
@@ -651,10 +635,8 @@ def availableProcessors() {
  */
 def bundleApp() {
   echo 'Bundling'
-  withStatsdTiming("bundle") {
-    lock ("bundle_install-$NODE_NAME") {
-      sh("bundle install --jobs=${availableProcessors()} --path ${JENKINS_HOME}/bundles --deployment --without development")
-    }
+  lock ("bundle_install-$NODE_NAME") {
+    sh("bundle install --jobs=${availableProcessors()} --path ${JENKINS_HOME}/bundles --deployment --without development")
   }
 }
 
@@ -663,10 +645,8 @@ def bundleApp() {
  */
 def bundleGem() {
   echo 'Bundling'
-  withStatsdTiming("bundle") {
-    lock ("bundle_install-$NODE_NAME") {
-      sh("bundle install --jobs=${availableProcessors()} --path ${JENKINS_HOME}/bundles")
-    }
+  lock ("bundle_install-$NODE_NAME") {
+    sh("bundle install --jobs=${availableProcessors()} --path ${JENKINS_HOME}/bundles")
   }
 }
 
@@ -676,9 +656,7 @@ def bundleGem() {
  * @param test_task Optional test_task instead of 'default'
  */
 def runTests(String test_task = 'default') {
-  withStatsdTiming("test_task") {
-    sh("bundle exec rake ${test_task}")
-  }
+  sh("bundle exec rake ${test_task}")
 }
 
 /**
@@ -714,9 +692,7 @@ def testGemWithAllRubies(extraRubyVersions = []) {
  */
 def runRakeTask(String rake_task) {
   echo "Running ${rake_task} task"
-  withStatsdTiming("rake") {
-    sh("bundle exec rake ${rake_task}")
-  }
+  sh("bundle exec rake ${rake_task}")
 }
 
 /**
@@ -821,24 +797,6 @@ def publishGem(String name, String repository, String branch) {
     echo('Pushing tag')
     pushTag(repository, branch, 'v' + version)
   }
-}
-
-/**
- * Time the function and send the result to statsd
- * @param key The key for statsd. The stats will be available in graphite under
- * `stats.timers.ci.APP_NAME.KEY_NAME`
- * @param fn Function to execute
- */
-def withStatsdTiming(key, fn) {
-  start = System.currentTimeMillis()
-
-  fn()
-
-  now = System.currentTimeMillis()
-  runtime = now - start
-
-  project_name = JOB_NAME.split('/')[0]
-  sh 'echo "ci.' + project_name + '.' + key + ':' + runtime + '|ms" | nc -w 1 -u localhost 8125'
 }
 
 /**
