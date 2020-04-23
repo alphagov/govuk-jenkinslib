@@ -109,7 +109,9 @@ def buildProject(Map options = [:]) {
         "build" : { nonDockerBuildTasks(options, jobName, repoName) },
         "docker" : { dockerBuildTasks(options, jobName) }
       )
-    } else {
+    } else if (env.BRANCH_NAME == "master") {
+      nonDockerBuildTasks(options, jobName, repoName)
+    } else if (!options.migratedToGithubActions) {
       nonDockerBuildTasks(options, jobName, repoName)
     }
 
