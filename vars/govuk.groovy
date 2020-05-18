@@ -696,9 +696,9 @@ def runRakeTask(String rake_task) {
 }
 
 /**
- * Push tags to Github repository
+ * Push tags to GitHub repository
  *
- * @param repository Github repository
+ * @param repository GitHub repository
  * @param branch Branch name
  * @param tag Tag name
  */
@@ -792,7 +792,7 @@ def publishGem(String name, String repository, String branch) {
   }
 
   if (taggedReleaseExists) {
-    echo "Version ${version} has already been tagged on Github. Skipping publication."
+    echo "Version ${version} has already been tagged on GitHub. Skipping publication."
   } else {
     echo('Pushing tag')
     pushTag(repository, branch, 'v' + version)
@@ -953,7 +953,7 @@ def uploadArtefactToS3(artefact_path, s3_path){
 }
 
 /**
- * Manually set build status in Github.
+ * Manually set build status in GitHub.
  *
  * Useful for downstream builds that want to report on the upstream PR.
  *
