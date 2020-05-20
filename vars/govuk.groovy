@@ -738,7 +738,7 @@ def pushTag(String repository, String branch, String tag) {
  */
 def deployIntegration(String application, String branch, String tag, String deployTask) {
   if (branch == 'master') {
-    build job: 'integration-app-deploy', parameters: [
+    build job: 'Deploy_App_Downstream', parameters: [
       string(name: 'TARGET_APPLICATION', value: application),
       string(name: 'TAG', value: tag),
       string(name: 'DEPLOY_TASK', value: deployTask)
