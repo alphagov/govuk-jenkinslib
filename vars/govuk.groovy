@@ -166,14 +166,6 @@ def nonDockerBuildTasks(options, jobName, repoName) {
     }
   }
 
-  if (hasRubocop()) {
-    stage("Lint Ruby") {
-      lintRuby()
-    }
-  } else {
-    echo "WARNING: You do not have Rubocop installed."
-  }
-
   if (hasAssets() && hasSCSSLint() && options.sassLint != false) {
     stage("Lint SCSS") {
       lintSCSS()
@@ -555,22 +547,6 @@ def getGitCommit() {
  */
 def setEnvGitCommit() {
   env.GIT_COMMIT = getGitCommit()
-}
-
-/**
- * Runs RuboCop. Only lint commits that are not in master.
- */
-def lintRuby() {
-  setEnvGitCommit()
-  if (!isCurrentCommitOnMaster()) {
-    echo 'Running RuboCop'
-
-    sh("bundle exec rubocop \
-       --parallel \
-       --format html --out rubocop-${GIT_COMMIT}.html \
-       --format clang"
-    )
-  }
 }
 
 /**
