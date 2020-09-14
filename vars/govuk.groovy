@@ -948,6 +948,7 @@ def setBuildStatus(jobName, commit, message, state, repoName) {
   * we test that there is no AWS_DEFAULT_REGION env variable so that AWS CI can be tested
   * without affecting external systems such as github tags, docker or deployed.
   */
+  println("check AWS or not");
   if (env.AWS_DEFAULT_REGION == null) {
     println("not in AWS setBuildStatus");
     step([
