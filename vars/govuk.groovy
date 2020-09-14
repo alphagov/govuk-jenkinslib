@@ -145,7 +145,7 @@ def buildProject(Map options = [:]) {
     }
 
     if (env.AWS_DEFAULT_REGION != null){
-      return
+      def updateGithubCommitStatus(build) {}
     }
 
   } catch (e) {
