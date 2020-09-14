@@ -949,6 +949,7 @@ def setBuildStatus(jobName, commit, message, state, repoName) {
   * without affecting external systems such as github tags, docker or deployed.
   */
   if (env.AWS_DEFAULT_REGION == null) {
+    println("not in AWS setBuildStatus");
     step([
         $class: "GitHubCommitStatusSetter",
         commitShaSource: [$class: "ManuallyEnteredShaSource", sha: commit],
