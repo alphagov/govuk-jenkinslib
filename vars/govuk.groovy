@@ -144,6 +144,10 @@ def buildProject(Map options = [:]) {
       setBuildStatus(jobName, params.SCHEMA_COMMIT, "Downstream ${jobName} job succeeded on Jenkins", 'SUCCESS', 'govuk-content-schemas')
     }
 
+    if (env.AWS_DEFAULT_REGION != null){
+      return
+    }
+
   } catch (e) {
     currentBuild.result = "FAILED"
     step([$class: 'Mailer',
