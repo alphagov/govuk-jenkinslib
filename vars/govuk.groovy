@@ -113,11 +113,7 @@ def buildProject(Map options = [:]) {
       nonDockerBuildTasks(options, jobName, repoName)
     }
 
-    /**
-    * we test that there is no AWS_DEFAULT_REGION env variable so that AWS CI can be tested
-    * without affecting external systems such as github tags, docker or deployed.
-    */
-    if (env.BRANCH_NAME == "master" && !params.IS_SCHEMA_TEST && env.AWS_DEFAULT_REGION == null) {
+    if (env.BRANCH_NAME == "master" && !params.IS_SCHEMA_TEST) {
       if (isGem()) {
         stage("Publish Gem to Rubygems") {
           publishGem(gemName, repoName, env.BRANCH_NAME)
@@ -944,20 +940,14 @@ def uploadArtefactToS3(artefact_path, s3_path){
  * @param repoName The alphagov repository
  */
 def setBuildStatus(jobName, commit, message, state, repoName) {
-  /**
-  * we test that there is no AWS_DEFAULT_REGION env variable so that AWS CI can be tested
-  * without affecting external systems such as github tags, docker or deployed.
-  */
-  if (env.AWS_DEFAULT_REGION == null) {
-    step([
-        $class: "GitHubCommitStatusSetter",
-        commitShaSource: [$class: "ManuallyEnteredShaSource", sha: commit],
-        reposSource: [$class: "ManuallyEnteredRepositorySource", url: "https://github.com/alphagov/${repoName}"],
-        contextSource: [$class: "ManuallyEnteredCommitContextSource", context: "continuous-integration/jenkins/${jobName}"],
-        errorHandlers: [[$class: "ChangingBuildStatusErrorHandler", result: "UNSTABLE"]],
-        statusResultSource: [ $class: "ConditionalStatusResultSource", results: [[$class: "AnyBuildResult", message: message, state: state]] ]
-    ]);
-  }
+  step([
+      $class: "GitHubCommitStatusSetter",
+      commitShaSource: [$class: "ManuallyEnteredShaSource", sha: commit],
+      reposSource: [$class: "ManuallyEnteredRepositorySource", url: "https://github.com/alphagov/${repoName}"],
+      contextSource: [$class: "ManuallyEnteredCommitContextSource", context: "continuous-integration/jenkins/${jobName}"],
+      errorHandlers: [[$class: "ChangingBuildStatusErrorHandler", result: "UNSTABLE"]],
+      statusResultSource: [ $class: "ConditionalStatusResultSource", results: [[$class: "AnyBuildResult", message: message, state: state]] ]
+  ]);
 }
 
 def runPublishingE2ETests(appCommitishName, testBranch, repo, testCommand = "test") {
