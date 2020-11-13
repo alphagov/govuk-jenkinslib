@@ -195,7 +195,8 @@ def nonDockerBuildTasks(options, jobName, repoName) {
 
     if (hasMongoidDatabase()) {
       stage("Set up the Mongoid database") {
-        runRakeTask("db:mongoid:create_indexes")
+        runRakeTask("db:drop")
+        runRakeTask("db:setup")
       }
     }
 
