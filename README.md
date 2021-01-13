@@ -78,3 +78,4 @@ postgres96Lint | Whether or not to forbid newer postgres features | `true`
 publishingE2ETests | Whether or not to run the Publishing end-to-end tests. | `false`
 sassLint | Whether or not to run the SASS linter | `true`
 skipDeployToIntegration | Whether or not to skip the "Deploy to integration" stage | `false`
+yarnInstall | Whether or not to install Yarn dependencies if a yarn.lock file is found | `true`
