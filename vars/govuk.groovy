@@ -172,14 +172,6 @@ def nonDockerBuildTasks(options, jobName, repoName) {
     }
   }
 
-  if (hasAssets() && hasSCSSLint() && options.sassLint != false) {
-    stage("Lint SCSS") {
-      lintSCSS()
-    }
-  } else {
-    echo "WARNING: You do not have scss-lint installed."
-  }
-
   if (options.beforeTest) {
     echo "Running pre-test tasks"
     options.beforeTest.call()
@@ -550,21 +542,6 @@ def setEnvGitCommit() {
   env.GIT_COMMIT = getGitCommit()
 }
 
-/**
- * Runs govuk-lint-sass (deprecated)
- */
-def sassLinter(String dirs = 'app/assets/stylesheets') {
-  echo 'Running SASS linter'
-  sh("bundle exec govuk-lint-sass ${dirs}")
-}
-
-/**
- * Runs scss-lint
- */
-def lintSCSS(String dirs = 'app/assets/stylesheets') {
-  echo 'Running scss-lint'
-  sh("bundle exec scss-lint ${dirs}")
-}
 
 /**
  * Precompiles assets
@@ -779,13 +756,6 @@ def hasAssets() {
  */
 def hasRubocop() {
   sh(script: "grep 'rubocop' Gemfile.lock", returnStatus: true) == 0
-}
-
-/**
- * Does this project use scss-lint?
- */
-def hasSCSSLint() {
-  sh(script: "grep 'scss_lint' Gemfile.lock", returnStatus: true) == 0
 }
 
 /**
