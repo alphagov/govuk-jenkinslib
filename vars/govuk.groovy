@@ -180,12 +180,6 @@ def nonDockerBuildTasks(options, jobName, repoName) {
     echo "WARNING: You do not have scss-lint installed."
   }
 
-  if (options.postgres96Lint != false) {
-    stage("Check for Postgres 9.6 features") {
-      postgres96Linter()
-    }
-  }
-
   if (options.beforeTest) {
     echo "Running pre-test tasks"
     options.beforeTest.call()
@@ -570,15 +564,6 @@ def sassLinter(String dirs = 'app/assets/stylesheets') {
 def lintSCSS(String dirs = 'app/assets/stylesheets') {
   echo 'Running scss-lint'
   sh("bundle exec scss-lint ${dirs}")
-}
-
-/**
- * Check for postgres 9.6 features: jsonb and brin
- */
-def postgres96Linter(String base = 'master', String file = 'db/schema.rb') {
-  echo 'Running Postgres 9.6 linter'
-  sh("! git diff master ${base} -- ${file} | grep -i brin")
-  sh("! git diff master ${base} -- ${file} | grep -i jsonb")
 }
 
 /**
