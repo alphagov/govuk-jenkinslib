@@ -166,6 +166,12 @@ def nonDockerBuildTasks(options, jobName, repoName) {
     }
   }
 
+  if (options.yarnInstall != false && fileExists(file: "yarn.lock")) {
+    stage("yarn install") {
+      sh("yarn install --frozen-lockfile")
+    }
+  }
+
   if (hasAssets() && hasSCSSLint() && options.sassLint != false) {
     stage("Lint SCSS") {
       lintSCSS()
