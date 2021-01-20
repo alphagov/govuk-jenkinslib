@@ -113,7 +113,7 @@ def buildProject(Map options = [:]) {
       nonDockerBuildTasks(options, jobName, repoName)
     }
 
-    if (env.BRANCH_NAME == "master" && !params.IS_SCHEMA_TEST) {
+    if ((env.BRANCH_NAME == "master" || env.BRANCH_NAME == "main") && !params.IS_SCHEMA_TEST) {
       if (isGem()) {
         stage("Publish Gem to Rubygems") {
           publishGem(gemName, repoName, env.BRANCH_NAME)
