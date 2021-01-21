@@ -93,8 +93,8 @@ def buildProject(Map options = [:]) {
       checkoutFromGitHubWithSSH(repoName)
     }
 
-    stage("Merge master") {
-      mergeMasterBranch()
+    stage("Merge main") {
+      mergeMainBranch()
     }
 
     stage("Configure environment") {
@@ -125,7 +125,7 @@ def buildProject(Map options = [:]) {
 
         if (hasDockerfile() && params.RUN_DOCKER_TASKS) {
           stage("Tag Docker image") {
-            dockerTagMasterBranch(jobName, env.BRANCH_NAME, env.BUILD_NUMBER)
+            dockerTagMainBranch(jobName, env.BRANCH_NAME, env.BUILD_NUMBER)
           }
         }
 
@@ -327,7 +327,7 @@ def checkoutFromGitHubWithSSH(String repository, Map options = [:]) {
     branch: null,
     changelog: true,
     location: null,
-    shallow: env.BRANCH_NAME != "master",
+    shallow: env.BRANCH_NAME != "master" || env.BRANCH_NAME != "main",
     org: "alphagov",
     poll: true,
     host: "github.com"
@@ -387,7 +387,7 @@ def checkoutFromGitHubWithSSH(String repository, Map options = [:]) {
  */
 def checkoutDependent(String repository, options = [:], Closure closure = null) {
   def defaultOptions = [
-    branch: "master",
+    branch: "main",
     changelog: false,
     directory: "tmp/${repository}",
     poll: false
@@ -410,7 +410,7 @@ def checkoutDependent(String repository, options = [:], Closure closure = null) 
  * This will be false for development branches and true for release branches,
  * and master itself.
  */
-def isCurrentCommitOnMaster() {
+def isCurrentCommitOnMain() {
   sh(
     script: 'git rev-list origin/master | grep $(git rev-parse HEAD)',
     returnStatus: true
@@ -432,21 +432,22 @@ def releaseBranchExists() {
 }
 
 /**
- * Try to merge master into the current branch
+ * Try to merge main into the current branch
  *
  * This will abort if it doesn't exit cleanly (ie there are conflicts), and
- * will be a noop if the current branch is master or is in the history for
- * master, e.g. a previously-merged dev branch or the deployed-to-production
+ * will be a noop if the current branch is main or is in the history for
+ * main, e.g. a previously-merged dev branch or the deployed-to-production
  * branch.
  */
-def mergeMasterBranch() {
-  if (isCurrentCommitOnMaster()) {
-    echo "Current commit is on master, so building this branch without " +
-      "merging in master branch."
+def mergeMainBranch() {
+  if (isCurrentCommitOnMain()) {
+    echo "Current commit is on main, so building this branch without " +
+      "merging in main branch."
   } else {
-    echo "Current commit is not on master, so attempting merge of master " +
+    echo "Current commit is not on main, so attempting merge of main " +
       "branch before proceeding with build"
 
+    // TODO:
     sshagent(['govuk-ci-ssh-key']) {
       sh("git fetch --no-tags --depth=30 origin " +
          "+refs/heads/master:refs/remotes/origin/master " +
@@ -648,11 +649,11 @@ def runRakeTask(String rake_task) {
  * @param tag Tag name
  */
 def pushTag(String repository, String branch, String tag) {
-  if (branch == 'master'){
+  if (branch == 'master' || branch == 'main'){
     echo 'Pushing tag'
     sshagent(['govuk-ci-ssh-key']) {
       sh("git tag -a ${tag} -m 'Jenkinsfile tagging with ${tag}'")
-      echo "Tagging alphagov/${repository} master branch -> ${tag}"
+      echo "Tagging alphagov/${repository} main branch -> ${tag}"
       sh("git push git@github.com:alphagov/${repository}.git ${tag}")
 
       // TODO: pushTag would be better if it only did exactly that,
@@ -682,7 +683,7 @@ def pushTag(String repository, String branch, String tag) {
  * @param deployTask Deploy task (deploy, deploy:migrations or deploy:setup)
  */
 def deployIntegration(String application, String branch, String tag, String deployTask) {
-  if (branch == 'master') {
+  if (branch == 'master' || branch == 'main') {
     build job: 'Deploy_App_Downstream', parameters: [
       string(name: 'TARGET_APPLICATION', value: application),
       string(name: 'TAG', value: tag),
@@ -695,11 +696,13 @@ def deployIntegration(String application, String branch, String tag, String depl
  * Publish a gem to rubygems.org
  *
  * @param name Name of the gem. This should match the name of the gemspec file.
- * @param repository Name of the repository. This is used to add a git tag for the release.
- * @param branch Branch name being published. Only publishes if this is 'master'
+ * @param repository Name of the repository. This is used to add a git tag for
+ * the release.
+ * @param branch Branch name being published. Only publishes if this is 'main'
+ * or 'master'.
  */
 def publishGem(String name, String repository, String branch) {
-  if (branch != 'master') {
+  if (branch != 'master' || branch != 'main') {
     return
   }
 
@@ -830,7 +833,7 @@ def buildDockerImage(imageName, tagName, quiet = false) {
 
 /**
  */
-def dockerTagMasterBranch(jobName, branchName, buildNumber) {
+def dockerTagMainBranch(jobName, branchName, buildNumber) {
   dockerTag = "release_${buildNumber}"
   pushDockerImage(jobName, branchName, dockerTag)
 
