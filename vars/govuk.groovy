@@ -123,7 +123,7 @@ def buildProject(Map options = [:]) {
     if (env.BRANCH_NAME == defaultBranch && !params.IS_SCHEMA_TEST) {
       if (isGem()) {
         stage("Publish Gem to Rubygems") {
-          publishGem(gemName, repoName, env.BRANCH_NAME)
+          publishGem(gemName, repoName, env.BRANCH_NAME, defaultBranch)
         }
       } else {
         stage("Push release tag") {
