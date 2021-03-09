@@ -19,11 +19,7 @@ def buildProject(Map options = [:]) {
     gemName = repoName
   }
 
-  if (options.defaultBranch) {
-    defaultBranch = options.defaultBranch
-  } else {
-    defaultBranch = 'master'
-  }
+  defaultBranch = isDefaultBranch(repoName, 'main') ? 'main' : 'master'
 
   def parameterDefinitions = [
     booleanParam(
@@ -324,6 +320,31 @@ def runBrakemanSecurityScanner(repoName) {
 def cleanupGit() {
   echo 'Cleaning up git'
   sh('git clean -fdx')
+}
+
+/**
+ * Check if the given branch is the default one.
+ */
+def isDefaultBranch(String repository, String branchName) {
+  sshagent(['govuk-ci-ssh-key']) {
+    def lines = sh(
+      script: "git ls-remote git@github.com:alphagov/${repository}.git",
+      returnStdout: true
+    ).trim().split('\n')
+
+    def headCommitish = lines[0].split()[0]
+
+    for (line in lines) {
+      def bits = line.split()
+      if (bits[0] == headCommitish) {
+        if (bits[1] == "refs/heads/${branchName}") {
+          return true
+        }
+      }
+    }
+
+    return false
+  }
 }
 
 /**
