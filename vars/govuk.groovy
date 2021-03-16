@@ -93,7 +93,7 @@ def buildProject(Map options = [:]) {
     }
 
     stage("Checkout") {
-      checkoutFromGitHubWithSSH(repoName, [shallow: env.BRANCH_NAME == defaultBranch])
+      checkoutFromGitHubWithSSH(repoName, [shallow: env.BRANCH_NAME != defaultBranch])
     }
 
     stage("Merge ${defaultBranch}") {
