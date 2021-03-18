@@ -5,6 +5,7 @@ def buildProject(Map options = [:]) {
   def jobName = JOB_NAME.split('/')[0]
   def repoName
   def gemName
+  def defaultBranch
 
   if (options.repoName) {
     repoName = options.repoName
@@ -16,6 +17,12 @@ def buildProject(Map options = [:]) {
     gemName = options.gemName
   } else {
     gemName = repoName
+  }
+
+  if (options.defaultBranch) {
+    defaultBranch = options.defaultBranch
+  } else {
+    defaultBranch = 'master'
   }
 
   def parameterDefinitions = [
@@ -90,11 +97,11 @@ def buildProject(Map options = [:]) {
     }
 
     stage("Checkout") {
-      checkoutFromGitHubWithSSH(repoName)
+      checkoutFromGitHubWithSSH(repoName, [shallow: env.BRANCH_NAME == defaultBranch])
     }
 
-    stage("Merge master") {
-      mergeMasterBranch()
+    stage("Merge ${defaultBranch}") {
+      mergeIntoBranch(defaultBranch)
     }
 
     stage("Configure environment") {
@@ -113,19 +120,19 @@ def buildProject(Map options = [:]) {
       nonDockerBuildTasks(options, jobName, repoName)
     }
 
-    if (env.BRANCH_NAME == "master" && !params.IS_SCHEMA_TEST) {
+    if (env.BRANCH_NAME == defaultBranch && !params.IS_SCHEMA_TEST) {
       if (isGem()) {
         stage("Publish Gem to Rubygems") {
           publishGem(gemName, repoName, env.BRANCH_NAME)
         }
       } else {
         stage("Push release tag") {
-          pushTag(repoName, env.BRANCH_NAME, 'release_' + env.BUILD_NUMBER)
+          pushTag(repoName, env.BRANCH_NAME, 'release_' + env.BUILD_NUMBER, defaultBranch)
         }
 
         if (hasDockerfile() && params.RUN_DOCKER_TASKS) {
           stage("Tag Docker image") {
-            dockerTagMasterBranch(jobName, env.BRANCH_NAME, env.BUILD_NUMBER)
+            dockerTagBranch(jobName, env.BRANCH_NAME, env.BUILD_NUMBER)
           }
         }
 
@@ -405,16 +412,27 @@ def checkoutDependent(String repository, options = [:], Closure closure = null) 
   }
 }
 
+
 /**
- * Check if the git HEAD is ahead of master.
+ * Check if the git HEAD is ahead of a particular branch
  * This will be false for development branches and true for release branches,
- * and master itself.
+ * and the default branch.
  */
-def isCurrentCommitOnMaster() {
+def isCurrentCommitOnBranch(String branch) {
   sh(
-    script: 'git rev-list origin/master | grep $(git rev-parse HEAD)',
+    script: 'git rev-list origin/${branch} | grep $(git rev-parse HEAD)',
     returnStatus: true
   ) == 0
+}
+
+/**
+ * Check if the git HEAD is ahead of master.
+ *
+ * This is a deprecated function that is maintained for a backwards
+ * compatible API
+ */
+def isCurrentCommitOnMaster() {
+  isCurrentCommitOnBranch("master")
 }
 
 /**
@@ -432,28 +450,39 @@ def releaseBranchExists() {
 }
 
 /**
- * Try to merge master into the current branch
+ * Try to merge a branch into the current branch
  *
  * This will abort if it doesn't exit cleanly (ie there are conflicts), and
- * will be a noop if the current branch is master or is in the history for
- * master, e.g. a previously-merged dev branch or the deployed-to-production
+ * will be a noop if the current branch is the specified branch or is in the
+ * history of it, e.g. a previously-merged dev branch or the deployed-to-production
  * branch.
  */
-def mergeMasterBranch() {
-  if (isCurrentCommitOnMaster()) {
-    echo "Current commit is on master, so building this branch without " +
-      "merging in master branch."
+def mergeIntoBranch(String branch) {
+  if (isCurrentCommitOnBranch(branch)) {
+    echo "Current commit is on ${branch}, so building this branch without " +
+      "merging in ${branch} branch."
   } else {
-    echo "Current commit is not on master, so attempting merge of master " +
+    echo "Current commit is not on ${branch}, so attempting merge of ${branch} " +
       "branch before proceeding with build"
 
     sshagent(['govuk-ci-ssh-key']) {
       sh("git fetch --no-tags --depth=30 origin " +
-         "+refs/heads/master:refs/remotes/origin/master " +
+         "+refs/heads/${branch}:refs/remotes/origin/${branch} " +
          "refs/heads/${env.BRANCH_NAME}:refs/remotes/origin/${env.BRANCH_NAME}")
     }
-    sh('git merge --no-commit origin/master || git merge --abort')
+    sh("git merge --no-commit origin/${branch} || git merge --abort")
   }
+
+}
+
+/**
+ * Try to merge master into the current branch
+ *
+ * This is a deprecated function that is maintained for a backwards
+ * compatible API
+ */
+def mergeMasterBranch() {
+  mergeIntoBranch("master")
 }
 
 /**
@@ -647,12 +676,12 @@ def runRakeTask(String rake_task) {
  * @param branch Branch name
  * @param tag Tag name
  */
-def pushTag(String repository, String branch, String tag) {
-  if (branch == 'master'){
+def pushTag(String repository, String branch, String tag, String defaultBranch = 'master') {
+  if (branch == defaultBranch){
     echo 'Pushing tag'
     sshagent(['govuk-ci-ssh-key']) {
       sh("git tag -a ${tag} -m 'Jenkinsfile tagging with ${tag}'")
-      echo "Tagging alphagov/${repository} master branch -> ${tag}"
+      echo "Tagging alphagov/${repository} ${defaultBranch} branch -> ${tag}"
       sh("git push git@github.com:alphagov/${repository}.git ${tag}")
 
       // TODO: pushTag would be better if it only did exactly that,
@@ -702,10 +731,11 @@ def deployIntegration(String application, String branch, String tag, String depl
  *
  * @param name Name of the gem. This should match the name of the gemspec file.
  * @param repository Name of the repository. This is used to add a git tag for the release.
- * @param branch Branch name being published. Only publishes if this is 'master'
+ * @param branch Branch name being published. Only publishes if this matches the default branch
+ * @param defaultBranch The default branch for the repository, defaults to master
  */
-def publishGem(String name, String repository, String branch) {
-  if (branch != 'master') {
+def publishGem(String name, String repository, String branch, String defaultBranch = 'master') {
+  if (branch != defaultBranch) {
     return
   }
 
@@ -746,7 +776,7 @@ def publishGem(String name, String repository, String branch) {
     echo "Version ${version} has already been tagged on GitHub. Skipping publication."
   } else {
     echo('Pushing tag')
-    pushTag(repository, branch, 'v' + version)
+    pushTag(repository, branch, 'v' + version, defaultBranch)
   }
 }
 
@@ -834,15 +864,21 @@ def buildDockerImage(imageName, tagName, quiet = false) {
   docker.build("govuk/${imageName}:${tagName}", args)
 }
 
-/**
- */
-def dockerTagMasterBranch(jobName, branchName, buildNumber) {
+def dockerTagBranch(jobName, branchName, buildNumber) {
   dockerTag = "release_${buildNumber}"
   pushDockerImage(jobName, branchName, dockerTag)
 
   if (releaseBranchExists()) {
     pushDockerImage(jobName, branchName, "release")
   }
+}
+
+/*
+ * This is a deprecated function that is maintained for a backwards
+ * compatible API
+ */
+def dockerTagMasterBranch(jobName, branchName, buildNumber) {
+  dockerTagBranch(jobName, branchName, buildNumber)
 }
 
 /*
