@@ -131,7 +131,7 @@ def buildProject(Map options = [:]) {
 
         if (!options.skipDeployToIntegration) {
           stage("Deploy to integration") {
-            deployIntegration(jobName, env.BRANCH_NAME, "release_${env.BUILD_NUMBER}", 'deploy')
+            deployToIntegration(jobName, "release_${env.BUILD_NUMBER}", 'deploy')
           }
         }
       }
@@ -681,14 +681,20 @@ def pushTag(String repository, String branch, String tag) {
  * @param tag Tag to deploy
  * @param deployTask Deploy task (deploy, deploy:migrations or deploy:setup)
  */
+def deployToIntegration(String application, String tag, String deployTask) {
+  build job: 'Deploy_App_Downstream', parameters: [
+    string(name: 'TARGET_APPLICATION', value: application),
+    string(name: 'TAG', value: tag),
+    string(name: 'DEPLOY_TASK', value: deployTask)
+  ], wait: false
+}
+
+/*
+ * This is a deprecated function that is maintained for a backwards
+ * compatible API
+ */
 def deployIntegration(String application, String branch, String tag, String deployTask) {
-  if (branch == 'master') {
-    build job: 'Deploy_App_Downstream', parameters: [
-      string(name: 'TARGET_APPLICATION', value: application),
-      string(name: 'TAG', value: tag),
-      string(name: 'DEPLOY_TASK', value: deployTask)
-    ], wait: false
-  }
+  deployToIntegration(application, tag, deployTask)
 }
 
 /**
