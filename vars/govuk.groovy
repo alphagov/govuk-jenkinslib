@@ -441,7 +441,7 @@ def checkoutDependent(String repository, options = [:], Closure closure = null) 
  */
 def isCurrentCommitOnBranch(String branch) {
   sh(
-    script: 'git rev-list origin/${branch} | grep $(git rev-parse HEAD)',
+    script: "git rev-list origin/${branch} | grep \$(git rev-parse HEAD)",
     returnStatus: true
   ) == 0
 }
