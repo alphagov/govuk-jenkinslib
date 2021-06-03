@@ -256,6 +256,10 @@ def nonDockerBuildTasks(options, jobName, repoName) {
 
   if (options.afterTest) {
     echo "Running post-test tasks"
+    if (isGem()) {
+      sh "rm -f Gemfile.lock"
+      bundleGem()
+    }
     options.afterTest.call()
   }
 }
