@@ -677,7 +677,7 @@ def testGemWithAllRubies(extraRubyVersions = []) {
       runTests()
     }
   }
-  sh "unset RBENV_VERSION"
+  env.RBENV_VERSION = ""
 }
 
 /**
