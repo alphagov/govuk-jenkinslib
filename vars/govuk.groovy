@@ -74,7 +74,8 @@ def buildProject(Map options = [:]) {
     // to handle params defined with the xxxParam(...) DSL instead of
     // [$class: ... ] style because we can't call .name / .defaultValue
     // on them directly
-    if (it.class == org.jenkinsci.plugins.structs.describable.UninstantiatedDescribable) {
+    if (it.class == org.jenkinsci.plugins.structs.describable.UninstantiatedDescribable ||
+        it.class == org.jenkinsci.plugins.workflow.cps.UninstantiatedDescribableWithInterpolation) {
       def mapVersionOfIt = it.toMap()
       defaultParameterValuesMap[mapVersionOfIt.name] = mapVersionOfIt.defaultValue
     } else {
