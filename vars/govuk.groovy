@@ -93,6 +93,12 @@ def buildProject(Map options = [:]) {
       setBuildStatus(jobName, params.SCHEMA_COMMIT, "Downstream ${jobName} job is building on Jenkins", 'PENDING', 'govuk-content-schemas')
     }
 
+    if (options.cleanWorkspace != false) {
+      stage("Clean workspace") {
+        cleanWs()
+      }
+    }
+
     stage("Checkout") {
       checkoutFromGitHubWithSSH(repoName, [shallow: env.BRANCH_NAME != defaultBranch])
     }

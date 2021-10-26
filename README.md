@@ -58,6 +58,7 @@ Parameter | Description | Default
 afterTest | A closure containing commands to run after the test stage, such as report publishing |
 beforeTest | A closure containing commands to run before the test stage, such as environment variable configuration
 brakeman | Whether or not to run the Brakeman security scanner | `true` if a Rails app, otherwise `false`
+cleanWorkspace | Whether to delete the workspace at the beginning of the build | `false`
 extraParameters | Provide details here of any extra parameters that can be used to configure this build.  See: https://jenkins.io/doc/pipeline/steps/workflow-multibranch/#code-properties-code-set-job-properties for details on the format and structure of these extra parameters. |
 extraRubyVersions | Ruby versions to run the tests against in addition to the versions currently supported by all GOV.UK applications. Only applies to gems because they may be used in projects with different Ruby versions. | `[]`
 gemName | If publishing a Rubygem, you can specify the Gem name. | Repository name
