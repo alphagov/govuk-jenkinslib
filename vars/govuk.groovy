@@ -129,19 +129,21 @@ def buildProject(Map options = [:]) {
           publishGem(gemName, repoName, env.BRANCH_NAME, defaultBranch)
         }
       } else {
-        stage("Push release tag") {
-          pushTag(repoName, env.BRANCH_NAME, 'release_' + env.BUILD_NUMBER, defaultBranch)
-        }
-
         if (hasDockerfile() && params.RUN_DOCKER_TASKS) {
           stage("Tag Docker image") {
             dockerTagBranch(jobName, env.BRANCH_NAME, env.BUILD_NUMBER)
           }
         }
 
-        if (!options.skipDeployToIntegration) {
-          stage("Deploy to integration") {
-            deployToIntegration(jobName, "release_${env.BUILD_NUMBER}", 'deploy')
+        if (!options.migrateToGithubActions) {
+          stage("Push release tag") {
+            pushTag(repoName, env.BRANCH_NAME, 'release_' + env.BUILD_NUMBER, defaultBranch)
+          }
+
+          if (!options.skipDeployToIntegration) {
+            stage("Deploy to integration") {
+              deployToIntegration(jobName, "release_${env.BUILD_NUMBER}", 'deploy')
+            }
           }
         }
       }
