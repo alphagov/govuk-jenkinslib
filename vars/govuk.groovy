@@ -920,7 +920,7 @@ def dockerTagMasterBranch(jobName, branchName, buildNumber) {
  */
 def pushDockerImage(imageName, tagName, asTag = null) {
   tagName = safeDockerTag(tagName)
-  docker.withRegistry('https://index.docker.io/v1/', 'govukci-docker-hub') {
+  docker.withRegistry('https://index.docker.io/v1/', 'govukci-docker-enterprise-hub') {
     docker.image("govuk/${imageName}:${tagName}").push(asTag ?: tagName)
   }
 }
