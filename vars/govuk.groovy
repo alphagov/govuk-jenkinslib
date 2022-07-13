@@ -642,7 +642,10 @@ def availableProcessors() {
 def bundleApp() {
   echo 'Bundling'
   lock ("bundle_install-$NODE_NAME") {
-    sh("bundle install --jobs=${availableProcessors()} --path ${JENKINS_HOME}/bundles --deployment --without development")
+    sh("bundle config set --local path '${JENKINS_HOME}/bundles'")
+    sh("bundle config set --local deployment 'true'")
+    sh("bundle config set --local without 'development'")
+    sh("bundle install --jobs=${availableProcessors()}")
   }
 }
 
@@ -652,7 +655,8 @@ def bundleApp() {
 def bundleGem() {
   echo 'Bundling'
   lock ("bundle_install-$NODE_NAME") {
-    sh("bundle install --jobs=${availableProcessors()} --path ${JENKINS_HOME}/bundles")
+    sh("bundle config set --local path '${JENKINS_HOME}/bundles'")
+    sh("bundle install --jobs=${availableProcessors()}")
   }
 }
 
