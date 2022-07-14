@@ -642,7 +642,14 @@ def availableProcessors() {
 def bundleApp() {
   echo 'Bundling'
   lock ("bundle_install-$NODE_NAME") {
-    sh("bundle install --jobs=${availableProcessors()} --path ${JENKINS_HOME}/bundles --deployment --without development")
+    if (bundlerVersionAtLeast(2, 1)) {
+      sh("bundle config set --local path '${JENKINS_HOME}/bundles'")
+      sh("bundle config set --local deployment 'true'")
+      sh("bundle config set --local without 'development'")
+      sh("bundle install --jobs=${availableProcessors()}")
+    } else {
+      sh("bundle install --jobs=${availableProcessors()} --path ${JENKINS_HOME}/bundles --deployment --without development")
+    }
   }
 }
 
@@ -652,8 +659,26 @@ def bundleApp() {
 def bundleGem() {
   echo 'Bundling'
   lock ("bundle_install-$NODE_NAME") {
-    sh("bundle install --jobs=${availableProcessors()} --path ${JENKINS_HOME}/bundles")
+    if (bundlerVersionAtLeast(2, 1)) {
+      sh("bundle config set --local path '${JENKINS_HOME}/bundles'")
+      sh("bundle install --jobs=${availableProcessors()}")
+    } else {
+      sh("bundle install --jobs=${availableProcessors()} --path ${JENKINS_HOME}/bundles")
+    }
   }
+}
+
+def bundlerVersionAtLeast(int expectedMajorVersion, int expectedMinorVersion = 0) {
+  def bundlerVersion = sh(
+    script: "bundle version | cut -d ' ' -f3",
+    returnStdout: true
+  ).trim()
+
+  def actualMajorVersion = bundlerVersion.tokenize('.')[0] as int
+  def actualMinorVersion = bundlerVersion.tokenize('.')[1] as int
+
+  (actualMajorVersion > expectedMajorVersion) ||
+    (actualMajorVersion == expectedMajorVersion && actualMinorVersion >= expectedMinorVersion)
 }
 
 /**
