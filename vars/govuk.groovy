@@ -903,7 +903,7 @@ def validateDockerFileRubyVersion() {
     // The Dockerfile base image version can be optionally suffixed with a - followed by a variant
     // e.g. ruby:2.4.2-slim. Newer Dockerfiles have an ARG ruby_version=x.y.z.
     def hasMatchingVersions = sh(script: "egrep -i \"(FROM ruby:|ruby_version=)${rubyVersion}(\$|-)\" Dockerfile", returnStatus: true) == 0 ||
-      sh(script: "egrep \"ARG base_image=ruby:${rubyVersion}(\$|-)\" Dockerfile", returnStatus: true) == 0
+      sh(script: "egrep \"ARG base_image=(ruby|ghcr\\.io\\/alphagov\\/govuk-ruby-base):${rubyVersion}(\$|-)\" Dockerfile", returnStatus: true) == 0
     if (!hasMatchingVersions) {
       def baseImageDefinition = sh(script: "egrep \"FROM \" Dockerfile", returnStdout: true).trim()
       error("Dockerfile uses base image \"${baseImageDefinition}\", this mismatches .ruby-version \"${rubyVersion}\"")
