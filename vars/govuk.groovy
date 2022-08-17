@@ -140,14 +140,8 @@ def buildProject(Map options = [:]) {
         }
 
         if (!options.skipDeployToIntegration) {
-          if (!isSmokey()) {
-            stage("Deploy to integration") {
-              deployToIntegration(jobName, "release_${env.BUILD_NUMBER}", 'deploy')
-            }
-          } else {
-            stage("Deploy Smokey to integration") {
-              deploySmokeyToIntegration()
-            }
+          stage("Deploy to integration") {
+            deployToIntegration(jobName, "release_${env.BUILD_NUMBER}", 'deploy')
           }
         }
       }
@@ -779,14 +773,6 @@ def deployToIntegration(String application, String tag, String deployTask) {
     string(name: 'TAG', value: tag),
     string(name: 'DEPLOY_TASK', value: deployTask)
   ], wait: false
-}
-
-def deploySmokeyToIntegration() {
-  build job: 'Deploy_Smokey', wait: false
-}
-
-def isSmokey() {
-  repoName == 'smokey'
 }
 
 /*
