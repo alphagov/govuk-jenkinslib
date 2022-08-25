@@ -782,7 +782,7 @@ def deployToIntegration(String application, String tag, String deployTask) {
 }
 
 def deploySmokeyToIntegration() {
-  build job: 'Smokey_Deploy', wait: false
+  build job: 'Deploy_Smokey_Downstream', wait: false
 }
 
 def isSmokey(repoName) {
