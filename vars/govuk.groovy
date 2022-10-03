@@ -933,7 +933,7 @@ def buildDockerImage(imageName, tagName, quiet = false) {
   validateDockerFileRubyVersion()
   tagName = safeDockerTag(tagName)
   args = "${quiet ? '--quiet' : ''} --pull ."
-  docker.build("governmentdigitalservice/${imageName}:${tagName}", args)
+  docker.build("govuk/${imageName}:${tagName}", args)
 }
 
 def dockerTagBranch(jobName, branchName, buildNumber) {
@@ -954,13 +954,13 @@ def dockerTagMasterBranch(jobName, branchName, buildNumber) {
 }
 
 /*
- * Push the image to the governmentdigitalservice docker hub and tag it. If `asTag` is set then
+ * Push the image to the govuk docker hub and tag it. If `asTag` is set then
  * the image is also tagged with that value otherwise the `tagName` is used.
  */
 def pushDockerImage(imageName, tagName, asTag = null) {
   tagName = safeDockerTag(tagName)
   docker.withRegistry('https://index.docker.io/v1/', 'govukci-docker-enterprise-hub') {
-    docker.image("governmentdigitalservice/${imageName}:${tagName}").push(asTag ?: tagName)
+    docker.image("govuk/${imageName}:${tagName}").push(asTag ?: tagName)
   }
 }
 
