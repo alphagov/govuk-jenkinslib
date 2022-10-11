@@ -934,8 +934,6 @@ def buildDockerImage(imageName, tagName, quiet = false) {
   tagName = safeDockerTag(tagName)
   args = "${quiet ? '--quiet' : ''} --pull ."
 
-  // Build for both accounts until everything is migrated
-  docker.build("govuk/${imageName}:${tagName}", args)
   docker.build("governmentdigitalservice/${imageName}:${tagName}", args)
 }
 
@@ -963,13 +961,7 @@ def dockerTagMasterBranch(jobName, branchName, buildNumber) {
 def pushDockerImage(imageName, tagName, asTag = null) {
   tagName = safeDockerTag(tagName)
   docker.withRegistry('https://index.docker.io/v1/', 'govukci-docker-enterprise-hub') {
-    // Push to both accounts until we migrate everything to the new one
-    docker.image("govuk/${imageName}:${tagName}").push(asTag ?: tagName)
-    try {
-      docker.image("governmentdigitalservice/${imageName}:${tagName}").push(asTag ?: tagName)
-    } catch (e) {
-      println("governmentdigitalservice/${imageName} doesn't exist. If you want to push to this org, you must create the repo manually first.")
-    }
+    docker.image("governmentdigitalservice/${imageName}:${tagName}").push(asTag ?: tagName)
   }
 }
 
