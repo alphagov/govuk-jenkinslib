@@ -188,6 +188,10 @@ def nonDockerBuildTasks(options, jobName, repoName) {
     }
   }
 
+  stage("yamllib install") {
+    sh("sudo apt-get install yamllint")
+  }
+
   if (options.beforeTest) {
     echo "Running pre-test tasks"
     options.beforeTest.call()
