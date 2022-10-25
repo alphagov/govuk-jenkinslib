@@ -7,6 +7,18 @@ def buildProject(Map options = [:]) {
   def gemName
   def defaultBranch
 
+  // if you have a large repository you'll want to set shallowClone to only clone
+  // a small portion of the repository and save time in build
+  // example: `buildProject(shallowClone: true)` or for only a single branch `buildproject(shallowclone: env.BRANCH_NAME != "main")`
+  def shallowClone = options.shallowClone != null ? options.shallowClone : false
+
+  // if you have a shallow clone you'll be limited in how many commits are
+  // available for a merge into the default branch. This will limit how many
+  // commits can be in a pull request.
+  // This option has no effect if shallowClone is not set
+  // example: `buildproject(shallowclone: env.BRANCH_NAME != "main", mergeDepth: 50)`
+  def mergeDepth = options.mergeDepth || 30
+
   if (options.repoName) {
     repoName = options.repoName
   } else {
@@ -100,11 +112,11 @@ def buildProject(Map options = [:]) {
     }
 
     stage("Checkout") {
-      checkoutFromGitHubWithSSH(repoName, [shallow: env.BRANCH_NAME != defaultBranch])
+      checkoutFromGitHubWithSSH(repoName, [shallow: shallowClone])
     }
 
     stage("Merge ${defaultBranch}") {
-      mergeIntoBranch(defaultBranch)
+      mergeIntoBranch(defaultBranch, [fetchBranch: shallowClone, mergeDepth: options.mergeDepth])
     }
 
     stage("Configure environment") {
@@ -495,7 +507,13 @@ def releaseBranchExists() {
  * history of it, e.g. a previously-merged dev branch or the deployed-to-production
  * branch.
  */
-def mergeIntoBranch(String branch) {
+def mergeIntoBranch(String branch, Map options = [:]) {
+  def defaultOptions = [
+    fetchBranch: false,
+    mergeDepth: 30
+  ]
+  options = defaultOptions << options
+
   if (isCurrentCommitOnBranch(branch)) {
     echo "Current commit is on ${branch}, so building this branch without " +
       "merging in ${branch} branch."
@@ -503,10 +521,12 @@ def mergeIntoBranch(String branch) {
     echo "Current commit is not on ${branch}, so attempting merge of ${branch} " +
       "branch before proceeding with build"
 
-    sshagent(['govuk-ci-ssh-key']) {
-      sh("git fetch --no-tags --depth=30 origin " +
-         "+refs/heads/${branch}:refs/remotes/origin/${branch} " +
-         "refs/heads/${env.BRANCH_NAME}:refs/remotes/origin/${env.BRANCH_NAME}")
+    if (options.fetchBranch) {
+      sshagent(['govuk-ci-ssh-key']) {
+        sh("git fetch --no-tags --depth=${options.mergeDepth} origin " +
+           "+refs/heads/${branch}:refs/remotes/origin/${branch} " +
+           "refs/heads/${env.BRANCH_NAME}:refs/remotes/origin/${env.BRANCH_NAME}")
+      }
     }
     sh("git merge --no-commit origin/${branch} || git merge --abort")
   }
