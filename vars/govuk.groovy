@@ -504,7 +504,7 @@ def mergeIntoBranch(String branch) {
       "branch before proceeding with build"
 
     sshagent(['govuk-ci-ssh-key']) {
-      sh("git fetch --no-tags --depth=30 origin " +
+      sh("git fetch --no-tags --depth=50 origin " +
          "+refs/heads/${branch}:refs/remotes/origin/${branch} " +
          "refs/heads/${env.BRANCH_NAME}:refs/remotes/origin/${env.BRANCH_NAME}")
     }
