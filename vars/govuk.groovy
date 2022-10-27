@@ -384,7 +384,7 @@ def checkoutFromGitHubWithSSH(String repository, Map options = [:]) {
     branch: null,
     changelog: true,
     location: null,
-    shallow: env.BRANCH_NAME != "master",
+    shallow: false,
     org: "alphagov",
     poll: true,
     host: "github.com"
@@ -444,7 +444,8 @@ def checkoutFromGitHubWithSSH(String repository, Map options = [:]) {
  */
 def checkoutDependent(String repository, options = [:], Closure closure = null) {
   def defaultOptions = [
-    branch: "master",
+    branch: "main",
+    shallow: true,
     changelog: false,
     directory: "tmp/${repository}",
     poll: false
