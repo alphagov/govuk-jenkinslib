@@ -444,7 +444,7 @@ def checkoutFromGitHubWithSSH(String repository, Map options = [:]) {
  */
 def checkoutDependent(String repository, options = [:], Closure closure = null) {
   def defaultOptions = [
-    branch: "master",
+    branch: "main",
     shallow: true,
     changelog: false,
     directory: "tmp/${repository}",
