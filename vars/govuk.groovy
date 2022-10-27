@@ -75,7 +75,7 @@ def buildProject(Map options = [:]) {
 
   properties([
     buildDiscarder(
-      logRotator(numToKeepStr: '50')
+      logRotator(numToKeepStr: '30')
     ),
     [$class: 'RebuildSettings', autoRebuild: false, rebuildDisabled: false],
     [$class: 'ParametersDefinitionProperty', parameterDefinitions: parameterDefinitions],
