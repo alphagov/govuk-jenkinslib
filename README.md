@@ -63,6 +63,5 @@ extraParameters | Provide details here of any extra parameters that can be used 
 extraRubyVersions | Ruby versions to run the tests against in addition to the versions currently supported by all GOV.UK applications. Only applies to gems because they may be used in projects with different Ruby versions. | `[]`
 gemName | If publishing a Rubygem, you can specify the Gem name. | Repository name
 overrideTestTask | A closure containing commands to run to test the project. This will run instead of the default `bundle exec rake` |
-publishingE2ETests | Whether or not to run the Publishing end-to-end tests. | `false`
 skipDeployToIntegration | Whether or not to skip the "Deploy to integration" stage | `false`
 yarnInstall | Whether or not to install Yarn dependencies if a yarn.lock file is found | `true`
