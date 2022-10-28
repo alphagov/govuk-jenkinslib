@@ -61,14 +61,6 @@ def buildProject(Map options = [:]) {
     )
   ]
 
-  if (options.publishingE2ETests == true && env.PUBLISHING_E2E_TESTS_BRANCH == null) {
-    parameterDefinitions << stringParam(
-      name: "PUBLISHING_E2E_TESTS_BRANCH",
-      defaultValue: "test-against",
-      description: "The branch of publishing-e2e-tests to test against"
-    )
-  }
-
   if (options.extraParameters) {
     parameterDefinitions.addAll(options.extraParameters)
   }
@@ -255,27 +247,6 @@ def nonDockerBuildTasks(options, jobName, repoName) {
           allowEmptyResults: true
         )
       }
-    }
-  }
-
-  if (options.publishingE2ETests == true && !params.IS_SCHEMA_TEST) {
-    stage("End-to-end tests") {
-      if ( env.PUBLISHING_E2E_TESTS_APP_PARAM == null ) {
-        appCommitishName = jobName.replace("-", "_").toUpperCase() + "_COMMITISH"
-      } else {
-        appCommitishName = env.PUBLISHING_E2E_TESTS_APP_PARAM
-      }
-      if ( env.PUBLISHING_E2E_TESTS_BRANCH == null ) {
-        testBranch = "test-against"
-      } else {
-        testBranch = env.PUBLISHING_E2E_TESTS_BRANCH
-      }
-      if ( env.PUBLISHING_E2E_TESTS_COMMAND == null ) {
-        testCommand = "test"
-      } else {
-        testCommand = env.PUBLISHING_E2E_TESTS_COMMAND
-      }
-      runPublishingE2ETests(appCommitishName, testBranch, repoName, testCommand)
     }
   }
 
@@ -1054,28 +1025,6 @@ def setBuildStatus(jobName, commit, message, state, repoName) {
       errorHandlers: [[$class: "ChangingBuildStatusErrorHandler", result: "UNSTABLE"]],
       statusResultSource: [ $class: "ConditionalStatusResultSource", results: [[$class: "AnyBuildResult", message: message, state: state]] ]
   ]);
-}
-
-def runPublishingE2ETests(appCommitishName, testBranch, repo, testCommand = "test") {
-  fullCommitHash = getFullCommitHash()
-  build(
-    job: "publishing-e2e-tests/${testBranch}",
-    parameters: [
-      [$class: "StringParameterValue",
-       name: appCommitishName,
-       value: fullCommitHash],
-      [$class: "StringParameterValue",
-       name: "TEST_COMMAND",
-       value: testCommand],
-      [$class: "StringParameterValue",
-       name: "ORIGIN_REPO",
-       value: repo],
-      [$class: "StringParameterValue",
-       name: "ORIGIN_COMMIT",
-       value: fullCommitHash]
-    ],
-    wait: false,
-  )
 }
 
 def getFullCommitHash() {
