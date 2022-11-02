@@ -448,16 +448,6 @@ def isCurrentCommitOnBranch(String branch) {
 }
 
 /**
- * Check if the git HEAD is ahead of master.
- *
- * This is a deprecated function that is maintained for a backwards
- * compatible API
- */
-def isCurrentCommitOnMaster() {
-  isCurrentCommitOnBranch("master")
-}
-
-/**
  * Check whether there is a git branch named release
  * This test is useful for determining whether we should update this branch or
  * not
@@ -503,16 +493,6 @@ def mergeIntoBranch(String branch, Map options = [:]) {
     sh("git merge --no-commit origin/${branch} || git merge --abort")
   }
 
-}
-
-/**
- * Try to merge master into the current branch
- *
- * This is a deprecated function that is maintained for a backwards
- * compatible API
- */
-def mergeMasterBranch() {
-  mergeIntoBranch("master")
 }
 
 /**
@@ -938,14 +918,6 @@ def dockerTagBranch(jobName, branchName, buildNumber) {
   if (releaseBranchExists()) {
     pushDockerImage(jobName, branchName, "release")
   }
-}
-
-/*
- * This is a deprecated function that is maintained for a backwards
- * compatible API
- */
-def dockerTagMasterBranch(jobName, branchName, buildNumber) {
-  dockerTagBranch(jobName, branchName, buildNumber)
 }
 
 /*
