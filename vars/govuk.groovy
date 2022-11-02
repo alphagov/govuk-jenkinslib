@@ -781,14 +781,6 @@ def isSmokey(repoName) {
   repoName == 'smokey'
 }
 
-/*
- * This is a deprecated function that is maintained for a backwards
- * compatible API
- */
-def deployIntegration(String application, String branch, String tag, String deployTask) {
-  deployToIntegration(application, tag, deployTask)
-}
-
 /**
  * Publish a gem to rubygems.org
  *
