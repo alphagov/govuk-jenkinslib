@@ -39,16 +39,6 @@ def buildProject(Map options = [:]) {
       defaultValue: false,
       description: 'Identifies whether this build is being triggered to test a change to the content schemas'
     ),
-    booleanParam(
-      name: 'PUSH_TO_GCR',
-      defaultValue: false,
-      description: '--TESTING ONLY-- Whether to push the docker image to Google Container Registry.'
-    ),
-    booleanParam(
-      name: 'RUN_DOCKER_TASKS',
-      defaultValue: true,
-      description: 'Whether to build and push the Docker image, if a Dockerfile exists.'
-    ),
     stringParam(
       name: 'SCHEMA_BRANCH',
       defaultValue: 'deployed-to-production',
@@ -118,13 +108,89 @@ def buildProject(Map options = [:]) {
       setEnvar("DISPLAY", ":99")
     }
 
-    if (hasDockerfile() && params.RUN_DOCKER_TASKS && !params.IS_SCHEMA_TEST) {
-      parallel (
-        "build" : { nonDockerBuildTasks(options, jobName, repoName) },
-        "docker" : { dockerBuildTasks(options, jobName) }
-      )
-    } else {
-      nonDockerBuildTasks(options, jobName, repoName)
+    contentSchemaDependency(params.SCHEMA_BRANCH)
+
+    stage("bundle install") {
+      isGem() ? bundleGem() : bundleApp()
+    }
+
+    if (isRails() || options.brakeman) {
+      stage("Security analysis") {
+        runBrakemanSecurityScanner(repoName)
+      }
+    }
+
+    if (options.yarnInstall != false && fileExists(file: "yarn.lock")) {
+      stage("yarn install") {
+        sh("yarn install --frozen-lockfile")
+      }
+    }
+
+    if (options.beforeTest) {
+      echo "Running pre-test tasks"
+      options.beforeTest.call()
+    }
+
+    // Prevent a project's tests from running in parallel on the same node
+    lock("$jobName-$NODE_NAME-test") {
+      if (hasActiveRecordDatabase()) {
+        stage("Set up the ActiveRecord database") {
+          runRakeTask("db:reset")
+        }
+      }
+
+      if (hasMongoidDatabase()) {
+        stage("Set up the Mongoid database") {
+          runRakeTask("db:drop")
+          runRakeTask("db:setup")
+        }
+      }
+
+      if (hasAssets()) {
+        stage("Precompile assets") {
+          precompileAssets()
+        }
+      }
+
+      if (options.overrideTestTask) {
+        echo "Running custom test task"
+        options.overrideTestTask.call()
+      } else {
+        if (isGem()) {
+          def extraRubyVersions = options.extraRubyVersions == null ? [] : options.extraRubyVersions
+          testGemWithAllRubies(extraRubyVersions)
+        } else {
+          stage("Run tests") {
+            runTests()
+          }
+        }
+      }
+
+      if (fileExists(file: "coverage/rcov")) {
+        stage("Ruby Code Coverage") {
+          step([$class: "RcovPublisher", reportDir: "coverage/rcov"])
+        }
+      }
+
+      if (fileExists("test/reports") ||
+          fileExists("spec/reports") ||
+          fileExists("features/reports")) {
+        stage("junit reports") {
+          junit(
+            testResults: "test/reports/*.xml, spec/reports/*.xml, features/reports/*.xml",
+            allowEmptyResults: true
+          )
+        }
+      }
+    }
+
+    if (options.afterTest) {
+      echo "Running post-test tasks"
+      if (isGem()) {
+        sh "rm -f Gemfile.lock"
+        bundleGem()
+      }
+      options.afterTest.call()
     }
 
     if (env.BRANCH_NAME == defaultBranch && !params.IS_SCHEMA_TEST) {
@@ -135,12 +201,6 @@ def buildProject(Map options = [:]) {
       } else {
         stage("Push release tag") {
           pushTag(repoName, env.BRANCH_NAME, 'release_' + env.BUILD_NUMBER, defaultBranch)
-        }
-
-        if (hasDockerfile() && params.RUN_DOCKER_TASKS) {
-          stage("Tag Docker image") {
-            dockerTagBranch(jobName, env.BRANCH_NAME, env.BUILD_NUMBER)
-          }
         }
 
         if (!options.skipDeployToIntegration) {
@@ -170,109 +230,6 @@ def buildProject(Map options = [:]) {
       setBuildStatus(jobName, params.SCHEMA_COMMIT, "Downstream ${jobName} job failed on Jenkins", 'FAILED', 'govuk-content-schemas')
     }
     throw e
-  }
-}
-
-def nonDockerBuildTasks(options, jobName, repoName) {
-  contentSchemaDependency(params.SCHEMA_BRANCH)
-
-  stage("bundle install") {
-    isGem() ? bundleGem() : bundleApp()
-  }
-
-  if (isRails() || options.brakeman) {
-    stage("Security analysis") {
-      runBrakemanSecurityScanner(repoName)
-    }
-  }
-
-  if (options.yarnInstall != false && fileExists(file: "yarn.lock")) {
-    stage("yarn install") {
-      sh("yarn install --frozen-lockfile")
-    }
-  }
-
-  if (options.beforeTest) {
-    echo "Running pre-test tasks"
-    options.beforeTest.call()
-  }
-
-  // Prevent a project's tests from running in parallel on the same node
-  lock("$jobName-$NODE_NAME-test") {
-    if (hasActiveRecordDatabase()) {
-      stage("Set up the ActiveRecord database") {
-        runRakeTask("db:reset")
-      }
-    }
-
-    if (hasMongoidDatabase()) {
-      stage("Set up the Mongoid database") {
-        runRakeTask("db:drop")
-        runRakeTask("db:setup")
-      }
-    }
-
-    if (hasAssets()) {
-      stage("Precompile assets") {
-        precompileAssets()
-      }
-    }
-
-    if (options.overrideTestTask) {
-      echo "Running custom test task"
-      options.overrideTestTask.call()
-    } else {
-      if (isGem()) {
-        def extraRubyVersions = options.extraRubyVersions == null ? [] : options.extraRubyVersions
-        testGemWithAllRubies(extraRubyVersions)
-      } else {
-        stage("Run tests") {
-          runTests()
-        }
-      }
-    }
-
-    if (fileExists(file: "coverage/rcov")) {
-      stage("Ruby Code Coverage") {
-        step([$class: "RcovPublisher", reportDir: "coverage/rcov"])
-      }
-    }
-
-    if (fileExists("test/reports") ||
-        fileExists("spec/reports") ||
-        fileExists("features/reports")) {
-      stage("junit reports") {
-        junit(
-          testResults: "test/reports/*.xml, spec/reports/*.xml, features/reports/*.xml",
-          allowEmptyResults: true
-        )
-      }
-    }
-  }
-
-  if (options.afterTest) {
-    echo "Running post-test tasks"
-    if (isGem()) {
-      sh "rm -f Gemfile.lock"
-      bundleGem()
-    }
-    options.afterTest.call()
-  }
-}
-
-def dockerBuildTasks(options, jobName) {
-  stage("Build Docker image") {
-    buildDockerImage(jobName, env.BRANCH_NAME, true)
-  }
-
-  if (!(env.BRANCH_NAME ==~ /^deployed-to/)) {
-    stage("Push Docker image") {
-      pushDockerImage(jobName, env.BRANCH_NAME)
-
-      if (params.PUSH_TO_GCR) {
-        pushDockerImageToGCR(jobName, env.BRANCH_NAME)
-      }
-    }
   }
 }
 
