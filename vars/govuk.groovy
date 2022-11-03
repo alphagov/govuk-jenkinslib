@@ -698,7 +698,6 @@ def pushTag(String repository, String branch, String tag, String defaultBranch =
  * @param application ID of the application, which should match the ID
  *        configured in puppet and which is usually the same as the repository
  *        name
- * @param branch Branch name
  * @param tag Tag to deploy
  * @param deployTask Deploy task (deploy, deploy:migrations or deploy:setup)
  */
@@ -716,14 +715,6 @@ def deploySmokeyToIntegration() {
 
 def isSmokey(repoName) {
   repoName == 'smokey'
-}
-
-/*
- * This is a deprecated function that is maintained for a backwards
- * compatible API
- */
-def deployIntegration(String application, String branch, String tag, String deployTask) {
-  deployToIntegration(application, tag, deployTask)
 }
 
 /**
