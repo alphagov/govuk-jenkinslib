@@ -39,10 +39,15 @@ def buildProject(Map options = [:]) {
       defaultValue: false,
       description: 'Identifies whether this build is being triggered to test a change to the content schemas'
     ),
+    booleanParam(
+      name: 'USE_PUBLISHING_API_FOR_SCHEMAS',
+      defaultValue: false,
+      description: 'Temporary: Identifies whether to use publishing-api or govuk-content-schemas as the source for schemas - for use during switchover of schemas to publishing api'
+    ),
     stringParam(
       name: 'SCHEMA_BRANCH',
       defaultValue: 'deployed-to-production',
-      description: 'The branch of govuk-content-schemas to test against'
+      description: 'The branch of govuk-content-schemas or publishing api to use for schemas in test'
     ),
     stringParam(
       name: 'SCHEMA_COMMIT',
@@ -108,7 +113,15 @@ def buildProject(Map options = [:]) {
       setEnvar("DISPLAY", ":99")
     }
 
-    contentSchemaDependency(params.SCHEMA_BRANCH)
+    //remove conditional when we've switched entirely away from content schemas as a separate repo
+    if (params.USE_PUBLISHING_API_FOR_SCHEMAS) {
+        echo "using publishing api for content schemas"
+        publishingApiDependency(params.SCHEMA_BRANCH)
+    } else {
+        echo "using govuk-content-schemas for content schemas"
+        //remove when content schemas has been archived
+        contentSchemaDependency(params.SCHEMA_BRANCH)
+    }
 
     stage("bundle install") {
       isGem() ? bundleGem() : bundleApp()
@@ -549,10 +562,20 @@ def precompileAssets() {
 
 /**
  * Clone govuk-content-schemas dependency for contract tests
+ * Remove when content schemas has been archived and moved into publsihing api
  */
 def contentSchemaDependency(String schemaGitCommit = 'deployed-to-production') {
   checkoutDependent("govuk-content-schemas", [ branch: schemaGitCommit ]) {
     setEnvar("GOVUK_CONTENT_SCHEMAS_PATH", pwd())
+  }
+}
+
+/**
+ * Clone publishing api containing content-schemas dependency for contract tests
+ */
+def publishingApiDependency(String schemaGitCommit = 'deployed-to-production') {
+  checkoutDependent("publishing-api", [ branch: schemaGitCommit ]) {
+    setEnvar("GOVUK_CONTENT_SCHEMAS_PATH", "${pwd()}/content_schemas" )
   }
 }
 
