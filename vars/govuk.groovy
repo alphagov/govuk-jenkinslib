@@ -39,15 +39,20 @@ def buildProject(Map options = [:]) {
       defaultValue: false,
       description: 'Identifies whether this build is being triggered to test a change to the content schemas'
     ),
+    booleanParam(
+      name: 'IS_PUBLISHING_API_SCHEMA_TEST',
+      defaultValue: false,
+      description: 'Identifies whether this build is being triggered to test a change to the content schemas'
+   ),
     stringParam(
       name: 'SCHEMA_BRANCH',
       defaultValue: 'deployed-to-production',
-      description: 'The branch of govuk-content-schemas to test against'
+      description: 'The branch of govuk-content-schemas or publishing api to test against'
     ),
     stringParam(
       name: 'SCHEMA_COMMIT',
       defaultValue: 'invalid',
-      description: 'The commit of govuk-content-schemas that triggered this build, if it is a schema test'
+      description: 'The commit of govuk-content-schemas or publishing api that triggered this build, if it is a schema test'
     )
   ]
 
@@ -83,8 +88,12 @@ def buildProject(Map options = [:]) {
       return
     }
 
-    if (params.IS_SCHEMA_TEST) {
-      setBuildStatus(jobName, params.SCHEMA_COMMIT, "Downstream ${jobName} job is building on Jenkins", 'PENDING', 'govuk-content-schemas')
+    if (params.IS_PUBLISHING_API_SCHEMA_TEST) {
+      setBuildStatus(jobName, params.SCHEMA_COMMIT, "Downstream ${jobName} job is building on Jenkins", 'SUCCESS', 'publishing-api')
+    }
+
+    if (params.IS_SCHEMA_TEST){
+      setBuildStatus(jobName, params.SCHEMA_COMMIT, "Downstream ${jobName} job is building on Jenkins", 'SUCCESS', 'govuk-content-schemas')
     }
 
     if (options.cleanWorkspace != false) {
@@ -193,7 +202,7 @@ def buildProject(Map options = [:]) {
       options.afterTest.call()
     }
 
-    if (env.BRANCH_NAME == defaultBranch && !params.IS_SCHEMA_TEST) {
+    if (env.BRANCH_NAME == defaultBranch && !params.IS_SCHEMA_TEST && !params.IS_PUBLISHING_API_SCHEMA_TEST) {
       if (isGem()) {
         stage("Publish Gem to Rubygems") {
           publishGem(gemName, repoName, env.BRANCH_NAME, defaultBranch)
@@ -216,6 +225,11 @@ def buildProject(Map options = [:]) {
         }
       }
     }
+
+    if (params.IS_PUBLISHING_API_SCHEMA_TEST) {
+      setBuildStatus(jobName, params.SCHEMA_COMMIT, "Downstream ${jobName} job succeeded on Jenkins", 'SUCCESS', 'publishing-api')
+    }
+
     if (params.IS_SCHEMA_TEST) {
       setBuildStatus(jobName, params.SCHEMA_COMMIT, "Downstream ${jobName} job succeeded on Jenkins", 'SUCCESS', 'govuk-content-schemas')
     }
@@ -226,6 +240,11 @@ def buildProject(Map options = [:]) {
           notifyEveryUnstableBuild: true,
           recipients: 'govuk-ci-notifications@digital.cabinet-office.gov.uk',
           sendToIndividuals: true])
+
+    if (params.IS_PUBLISHING_API_SCHEMA_TEST) {
+      setBuildStatus(jobName, params.SCHEMA_COMMIT, "Downstream ${jobName} job failed on Jenkins", 'FAILED', 'publishing-api')
+    }
+
     if (params.IS_SCHEMA_TEST) {
       setBuildStatus(jobName, params.SCHEMA_COMMIT, "Downstream ${jobName} job failed on Jenkins", 'FAILED', 'govuk-content-schemas')
     }
@@ -847,7 +866,7 @@ def uploadArtefactToS3(artefact_path, s3_path){
  * Useful for downstream builds that want to report on the upstream PR.
  *
  * @param jobName Name of the jenkins job being built
- * @param commit SHA of the triggering commit on govuk-content-schemas
+ * @param commit SHA of the triggering commit on govuk-content-schemas or publishing api
  * @param message The message to report
  * @param state The build state: one of PENDING, SUCCESS, FAILED
  * @param repoName The alphagov repository
