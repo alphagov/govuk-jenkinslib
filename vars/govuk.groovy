@@ -39,15 +39,20 @@ def buildProject(Map options = [:]) {
       defaultValue: false,
       description: 'Identifies whether this build is being triggered to test a change to the content schemas'
     ),
+    booleanParam(
+      name: 'USE_PUBLISHING_API_FOR_SCHEMAS',
+      defaultValue: false,
+      description: 'Temporary: Identifies whether to use publishing-api or govuk-content-schemas as the source for schemas - for use during switchover of schemas to publishing api'
+    ),
     stringParam(
       name: 'SCHEMA_BRANCH',
       defaultValue: 'deployed-to-production',
-      description: 'The branch of govuk-content-schemas to test against'
+      description: 'The branch of govuk-content-schemas or publishing api to use for schemas in test'
     ),
     stringParam(
       name: 'SCHEMA_COMMIT',
       defaultValue: 'invalid',
-      description: 'The commit of govuk-content-schemas that triggered this build, if it is a schema test'
+      description: 'The commit of govuk-content-schemas or publishing api that triggered this build, if it is a schema test'
     )
   ]
 
@@ -84,7 +89,11 @@ def buildProject(Map options = [:]) {
     }
 
     if (params.IS_SCHEMA_TEST) {
-      setBuildStatus(jobName, params.SCHEMA_COMMIT, "Downstream ${jobName} job is building on Jenkins", 'PENDING', 'govuk-content-schemas')
+      if (params.USE_PUBLISHING_API_FOR_SCHEMAS) {
+        setBuildStatus(jobName, params.SCHEMA_COMMIT, "Downstream ${jobName} job is building on Jenkins", 'SUCCESS', 'publishing-api')
+      } else {
+        setBuildStatus(jobName, params.SCHEMA_COMMIT, "Downstream ${jobName} job is building on Jenkins", 'SUCCESS', 'govuk-content-schemas')
+      }
     }
 
     if (options.cleanWorkspace != false) {
@@ -108,7 +117,15 @@ def buildProject(Map options = [:]) {
       setEnvar("DISPLAY", ":99")
     }
 
-    contentSchemaDependency(params.SCHEMA_BRANCH)
+    //remove conditional when we've switched entirely away from content schemas as a separate repo
+    if (params.USE_PUBLISHING_API_FOR_SCHEMAS) {
+        echo "using publishing api for content schemas"
+        publishingApiDependency(params.SCHEMA_BRANCH)
+    } else {
+        echo "using govuk-content-schemas for content schemas"
+        //remove when content schemas has been archived
+        contentSchemaDependency(params.SCHEMA_BRANCH)
+    }
 
     stage("bundle install") {
       isGem() ? bundleGem() : bundleApp()
@@ -216,8 +233,17 @@ def buildProject(Map options = [:]) {
         }
       }
     }
+
+    if (params.IS_PUBLISHING_API_SCHEMA_TEST) {
+      setBuildStatus(jobName, params.SCHEMA_COMMIT, "Downstream ${jobName} job succeeded on Jenkins", 'SUCCESS', 'publishing-api')
+    }
+
     if (params.IS_SCHEMA_TEST) {
-      setBuildStatus(jobName, params.SCHEMA_COMMIT, "Downstream ${jobName} job succeeded on Jenkins", 'SUCCESS', 'govuk-content-schemas')
+      if (params.USE_PUBLISHING_API_FOR_SCHEMAS) {
+        setBuildStatus(jobName, params.SCHEMA_COMMIT, "Downstream ${jobName} job succeeded on Jenkins", 'SUCCESS', 'publishing-api')
+      } else {
+        setBuildStatus(jobName, params.SCHEMA_COMMIT, "Downstream ${jobName} job succeeded on Jenkins", 'SUCCESS', 'govuk-content-schemas')
+      }
     }
 
   } catch (e) {
@@ -226,8 +252,13 @@ def buildProject(Map options = [:]) {
           notifyEveryUnstableBuild: true,
           recipients: 'govuk-ci-notifications@digital.cabinet-office.gov.uk',
           sendToIndividuals: true])
+
     if (params.IS_SCHEMA_TEST) {
-      setBuildStatus(jobName, params.SCHEMA_COMMIT, "Downstream ${jobName} job failed on Jenkins", 'FAILED', 'govuk-content-schemas')
+      if (params.USE_PUBLISHING_API_FOR_SCHEMAS) {
+        setBuildStatus(jobName, params.SCHEMA_COMMIT, "Downstream ${jobName} job failed on Jenkins", 'FAILED', 'publishing-api')
+      } else {
+        setBuildStatus(jobName, params.SCHEMA_COMMIT, "Downstream ${jobName} job failed on Jenkins", 'FAILED', 'govuk-content-schemas')
+        }
     }
     throw e
   }
@@ -549,10 +580,20 @@ def precompileAssets() {
 
 /**
  * Clone govuk-content-schemas dependency for contract tests
+ * Remove when content schemas has been archived and moved into publsihing api
  */
 def contentSchemaDependency(String schemaGitCommit = 'deployed-to-production') {
   checkoutDependent("govuk-content-schemas", [ branch: schemaGitCommit ]) {
     setEnvar("GOVUK_CONTENT_SCHEMAS_PATH", pwd())
+  }
+}
+
+/**
+ * Clone publishing api containing content-schemas dependency for contract tests
+ */
+def publishingApiDependency(String schemaGitCommit = 'deployed-to-production') {
+  checkoutDependent("publishing-api", [ branch: schemaGitCommit ]) {
+    setEnvar("GOVUK_CONTENT_SCHEMAS_PATH", "${pwd()}/content_schemas" )
   }
 }
 
@@ -847,7 +888,7 @@ def uploadArtefactToS3(artefact_path, s3_path){
  * Useful for downstream builds that want to report on the upstream PR.
  *
  * @param jobName Name of the jenkins job being built
- * @param commit SHA of the triggering commit on govuk-content-schemas
+ * @param commit SHA of the triggering commit on govuk-content-schemas or publishing api
  * @param message The message to report
  * @param state The build state: one of PENDING, SUCCESS, FAILED
  * @param repoName The alphagov repository
