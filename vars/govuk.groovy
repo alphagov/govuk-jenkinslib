@@ -90,9 +90,9 @@ def buildProject(Map options = [:]) {
 
     if (params.IS_SCHEMA_TEST) {
       if (params.USE_PUBLISHING_API_FOR_SCHEMAS) {
-        setBuildStatus(jobName, params.SCHEMA_COMMIT, "Downstream ${jobName} job is building on Jenkins", 'SUCCESS', 'publishing-api')
+        setBuildStatus(jobName, params.SCHEMA_COMMIT, "Downstream ${jobName} job is building on Jenkins", 'PENDING', 'publishing-api')
       } else {
-        setBuildStatus(jobName, params.SCHEMA_COMMIT, "Downstream ${jobName} job is building on Jenkins", 'SUCCESS', 'govuk-content-schemas')
+        setBuildStatus(jobName, params.SCHEMA_COMMIT, "Downstream ${jobName} job is building on Jenkins", 'PENDING', 'govuk-content-schemas')
       }
     }
 
@@ -232,10 +232,6 @@ def buildProject(Map options = [:]) {
           }
         }
       }
-    }
-
-    if (params.IS_PUBLISHING_API_SCHEMA_TEST) {
-      setBuildStatus(jobName, params.SCHEMA_COMMIT, "Downstream ${jobName} job succeeded on Jenkins", 'SUCCESS', 'publishing-api')
     }
 
     if (params.IS_SCHEMA_TEST) {
