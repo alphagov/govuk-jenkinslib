@@ -4,7 +4,6 @@ def buildProject(Map options = [:]) {
 
   def jobName = JOB_NAME.split('/')[0]
   def repoName
-  def gemName
   def defaultBranch
 
   // if you have a large repository you'll want to set shallowClone to only clone
@@ -23,12 +22,6 @@ def buildProject(Map options = [:]) {
     repoName = options.repoName
   } else {
     repoName = jobName
-  }
-
-  if (options.gemName) {
-    gemName = options.gemName
-  } else {
-    gemName = repoName
   }
 
   defaultBranch = isDefaultBranch(repoName, 'main') ? 'main' : 'master'
@@ -110,8 +103,13 @@ def buildProject(Map options = [:]) {
 
     publishingApiDependency(params.SCHEMA_BRANCH)
 
+    if (isGem()) {
+      // We've removed the ability to build RubyGems, if you really need it back see: https://github.com/alphagov/govuk-jenkinslib/pull/130
+      error("GOV.UK Jenkins no longer builds RubyGems, please use GitHub Actions. See: https://docs.publishing.service.gov.uk/manual/test-and-build-a-project-with-github-actions.html#a-ruby-gem")
+    }
+
     stage("bundle install") {
-      isGem() ? bundleGem() : bundleApp()
+      bundleApp()
     }
 
     if (isRails() || options.brakeman) {
@@ -156,13 +154,8 @@ def buildProject(Map options = [:]) {
         echo "Running custom test task"
         options.overrideTestTask.call()
       } else {
-        if (isGem()) {
-          def extraRubyVersions = options.extraRubyVersions == null ? [] : options.extraRubyVersions
-          testGemWithAllRubies(extraRubyVersions)
-        } else {
-          stage("Run tests") {
-            runTests()
-          }
+        stage("Run tests") {
+          runTests()
         }
       }
 
@@ -186,32 +179,22 @@ def buildProject(Map options = [:]) {
 
     if (options.afterTest) {
       echo "Running post-test tasks"
-      if (isGem()) {
-        sh "rm -f Gemfile.lock"
-        bundleGem()
-      }
       options.afterTest.call()
     }
 
     if (env.BRANCH_NAME == defaultBranch && !params.IS_SCHEMA_TEST) {
-      if (isGem()) {
-        stage("Publish Gem to Rubygems") {
-          publishGem(gemName, repoName, env.BRANCH_NAME, defaultBranch)
-        }
-      } else {
-        stage("Push release tag") {
-          pushTag(repoName, env.BRANCH_NAME, 'release_' + env.BUILD_NUMBER, defaultBranch)
-        }
+      stage("Push release tag") {
+        pushTag(repoName, env.BRANCH_NAME, 'release_' + env.BUILD_NUMBER, defaultBranch)
+      }
 
-        if (!options.skipDeployToIntegration) {
-          if (!isSmokey(repoName)) {
-            stage("Deploy to integration") {
-              deployToIntegration(jobName, "release_${env.BUILD_NUMBER}", 'deploy')
-            }
-          } else {
-            stage("Deploy Smokey to integration") {
-              deploySmokeyToIntegration()
-            }
+      if (!options.skipDeployToIntegration) {
+        if (!isSmokey(repoName)) {
+          stage("Deploy to integration") {
+            deployToIntegration(jobName, "release_${env.BUILD_NUMBER}", 'deploy')
+          }
+        } else {
+          stage("Deploy Smokey to integration") {
+            deploySmokeyToIntegration()
           }
         }
       }
@@ -590,21 +573,6 @@ def bundleApp() {
   }
 }
 
-/**
- * Bundles all the gems
- */
-def bundleGem() {
-  echo 'Bundling'
-  lock ("bundle_install-$NODE_NAME") {
-    if (bundlerVersionAtLeast(2, 1)) {
-      sh("bundle config set --local path '${JENKINS_HOME}/bundles'")
-      sh("bundle install --jobs=${availableProcessors()}")
-    } else {
-      sh("bundle install --jobs=${availableProcessors()} --path ${JENKINS_HOME}/bundles")
-    }
-  }
-}
-
 def bundlerVersionAtLeast(int expectedMajorVersion, int expectedMinorVersion = 0) {
   def bundlerVersion = sh(
     script: "bundle version | cut -d ' ' -f3",
@@ -625,32 +593,6 @@ def bundlerVersionAtLeast(int expectedMajorVersion, int expectedMinorVersion = 0
  */
 def runTests(String test_task = 'default') {
   sh("bundle exec rake ${test_task}")
-}
-
-/**
- * Runs the tests with all the Ruby versions that are currently supported.
- *
- * Adds a Jenkins stage for each Ruby version, so do not call this from within
- * a stage.
- *
- * @param extraRubyVersions Optional Ruby versions to run the tests against in
- * addition to the versions currently supported by all GOV.UK applications
- */
-def testGemWithAllRubies(extraRubyVersions = []) {
-  def rubyVersions = ["2.6", "2.7"]
-
-  rubyVersions.addAll(extraRubyVersions)
-
-  for (rubyVersion in rubyVersions) {
-    stage("Test with ruby $rubyVersion") {
-      sh "rm -f Gemfile.lock"
-      setEnvar("RBENV_VERSION", rubyVersion)
-      bundleGem()
-
-      runTests()
-    }
-  }
-  env.RBENV_VERSION = ""
 }
 
 /**
@@ -717,60 +659,6 @@ def deploySmokeyToIntegration() {
 
 def isSmokey(repoName) {
   repoName == 'smokey'
-}
-
-/**
- * Publish a gem to rubygems.org
- *
- * @param name Name of the gem. This should match the name of the gemspec file.
- * @param repository Name of the repository. This is used to add a git tag for the release.
- * @param branch Branch name being published. Only publishes if this matches the default branch
- * @param defaultBranch The default branch for the repository, defaults to master
- */
-def publishGem(String name, String repository, String branch, String defaultBranch = 'master') {
-  if (branch != defaultBranch) {
-    return
-  }
-
-  def version = sh(
-    script: /ruby -e "puts eval(File.read('${name}.gemspec'), TOPLEVEL_BINDING).version.to_s"/,
-    returnStdout: true
-  ).trim()
-
-  sshagent(['govuk-ci-ssh-key']) {
-    echo "Fetching remote tags"
-    sh("git fetch --tags")
-  }
-
-  def escapedVersion = version.replaceAll(/\./, /\\\\./)
-  def versionAlreadyPublished = sh(
-    script: /gem list ^${name}\$ --remote --all --quiet | grep [^0-9\\.]${escapedVersion}[^0-9\\.]/,
-    returnStatus: true
-  ) == 0
-
-  if (versionAlreadyPublished) {
-    echo "Version ${version} has already been published to rubygems.org. Skipping publication."
-  } else {
-    echo('Publishing gem')
-    sh("gem build ${name}.gemspec")
-    sh("gem push ${name}-${version}.gem")
-  }
-
-  def taggedReleaseExists = false
-
-  sshagent(['govuk-ci-ssh-key']) {
-    taggedReleaseExists = sh(
-      script: "git ls-remote --exit-code --tags origin v${version}",
-      returnStatus: true
-    ) == 0
-  }
-
-  if (taggedReleaseExists) {
-    echo "Version ${version} has already been tagged on GitHub. Skipping publication."
-  } else {
-    echo('Pushing tag')
-    pushTag(repository, branch, 'v' + version, defaultBranch)
-  }
 }
 
 /**
