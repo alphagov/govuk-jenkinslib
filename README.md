@@ -65,3 +65,7 @@ gemName | If publishing a Rubygem, you can specify the Gem name. | Repository na
 overrideTestTask | A closure containing commands to run to test the project. This will run instead of the default `bundle exec rake` |
 skipDeployToIntegration | Whether or not to skip the "Deploy to integration" stage | `false`
 yarnInstall | Whether or not to install Yarn dependencies if a yarn.lock file is found | `true`
+
+## Licence
+
+[MIT License](LICENCE)
