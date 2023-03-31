@@ -34,7 +34,7 @@ def buildProject(Map options = [:]) {
     ),
     stringParam(
       name: 'SCHEMA_BRANCH',
-      defaultValue: 'deployed-to-production',
+      defaultValue: 'main',
       description: 'The branch of publishing api to use for schemas in test'
     ),
     stringParam(
@@ -529,7 +529,7 @@ def precompileAssets() {
 /**
  * Clone publishing api containing content-schemas dependency for contract tests
  */
-def publishingApiDependency(String schemaGitCommit = 'deployed-to-production') {
+def publishingApiDependency(String schemaGitCommit = 'main') {
   checkoutDependent("publishing-api", [ branch: schemaGitCommit ]) {
     setEnvar("GOVUK_CONTENT_SCHEMAS_PATH", "${pwd()}/content_schemas" )
   }
